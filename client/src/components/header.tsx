@@ -1,119 +1,45 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { useTheme } from "@/hooks/use-theme";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Sun, Moon, Settings, Menu } from "lucide-react";
-import { AdminLoginModal } from "./admin-login-modal";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAdmin } from '@/hooks/use-admin';
+import { Button } from '@/components/ui/button';
+import { AdminLoginModal } from '@/components/admin-login-modal';
+import { LogOut, UserCog } from 'lucide-react';
 
 export function Header() {
-  const [location] = useLocation();
-  const { theme, toggleTheme } = useTheme();
-  const [showAdminModal, setShowAdminModal] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { isAdmin, logout } = useAdmin();
+  const navigate = useNavigate();
 
-  const navigation = [
-    { href: "/", label: "🌟 Destaques", id: "destaques" },
-    { href: "/buscar", label: "🔍 Buscar Produtos", id: "busca" },
-  ];
-
-  const isActive = (href: string) => {
-    if (href === "/" && location === "/") return true;
-    if (href !== "/" && location.startsWith(href)) return true;
-    return false;
+  const handleAdminClick = () => {
+    if (isAdmin) {
+      navigate('/admin');
+    } else {
+      setIsModalOpen(true);
+    }
   };
 
   return (
     <>
-      <header className="bg-card/95 backdrop-blur-sm shadow-lg fixed top-0 left-0 right-0 z-40 border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link href="/" className="flex items-center">
-              <div className="w-10 h-10 btn-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">C</span>
-              </div>
-              <span className="ml-3 text-xl font-bold text-foreground">Catálogo Feminino</span>
-            </Link>
-
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-8">
-              {navigation.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive(item.href)
-                      ? "text-primary bg-primary/10"
-                      : "text-muted-foreground hover:text-primary"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Controls */}
-            <div className="flex items-center space-x-4">
-              {/* Theme Toggle */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleTheme}
-                className="rounded-lg"
-                title="Alternar tema"
-              >
-                {theme === "light" ? (
-                  <Sun className="h-5 w-5" />
-                ) : (
-                  <Moon className="h-5 w-5" />
-                )}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center justify-between">
+          <a href="/" className="flex items-center space-x-2">
+            <span className="font-bold">Meu Catálogo</span>
+          </a>
+          <div className="flex items-center space-x-2">
+            {isAdmin && (
+              <Button variant="ghost" size="sm" onClick={logout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
               </Button>
-
-              {/* Admin Button */}
-              <Button
-                onClick={() => setShowAdminModal(true)}
-                className="btn-primary px-4 py-2 text-sm font-medium rounded-lg"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Admin
-              </Button>
-
-              {/* Mobile menu button */}
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden">
-                    <Menu className="h-6 w-6" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right">
-                  <nav className="flex flex-col space-y-4 mt-8">
-                    {navigation.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                          isActive(item.href)
-                            ? "text-primary bg-primary/10"
-                            : "text-muted-foreground hover:text-primary"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </nav>
-                </SheetContent>
-              </Sheet>
-            </div>
+            )}
+            <Button variant="outline" size="sm" onClick={handleAdminClick}>
+              <UserCog className="mr-2 h-4 w-4" />
+              Admin
+            </Button>
           </div>
         </div>
       </header>
-
-      <AdminLoginModal 
-        open={showAdminModal} 
-        onOpenChange={setShowAdminModal} 
-      />
+      <AdminLoginModal open={isModalOpen} onOpenChange={setIsModalOpen} />
     </>
   );
 }

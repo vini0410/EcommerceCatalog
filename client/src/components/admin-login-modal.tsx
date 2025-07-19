@@ -11,9 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock } from "lucide-react";
-import { api } from "@/lib/api";
+import { useAdmin } from "@/hooks/use-admin"; // Import useAdmin hook
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 
 interface AdminLoginModalProps {
   open: boolean;
@@ -23,10 +22,10 @@ interface AdminLoginModalProps {
 export function AdminLoginModal({ open, onOpenChange }: AdminLoginModalProps) {
   const [codigo, setCodigo] = useState("");
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const { login } = useAdmin(); // Use the login function from the hook
 
   const loginMutation = useMutation({
-    mutationFn: (codigo: string) => api.loginAdmin(codigo),
+    mutationFn: (codigo: string) => login(codigo), // Use login from the hook
     onSuccess: () => {
       toast({
         title: "Login realizado com sucesso!",
@@ -34,7 +33,6 @@ export function AdminLoginModal({ open, onOpenChange }: AdminLoginModalProps) {
       });
       onOpenChange(false);
       setCodigo("");
-      setLocation("/admin");
     },
     onError: () => {
       toast({

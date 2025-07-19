@@ -1,111 +1,111 @@
-import { pgTable, text, serial, integer, boolean, real, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, real, boolean, timestamp, integer } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const produtos = pgTable("produtos", {
+export const Produto = pgTable("produtos", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   titulo: text("titulo").notNull(),
-  valorBruto: real("valor_bruto").notNull(),
-  valorDesconto: real("valor_desconto"),
-  descontoCalculado: real("desconto_calculado"),
-  fotos: text("fotos").array().notNull().default([]),
+  valorBruto: real("valorBruto").notNull(),
+  valorDesconto: real("valorDesconto"),
+  descontoCalculado: real("descontoCalculado"),
+  fotos: text("fotos").array().notNull(),
   ativo: boolean("ativo").notNull().default(true),
-  criadoEm: timestamp("criado_em").notNull().defaultNow(),
-  atualizadoEm: timestamp("atualizado_em").notNull().defaultNow(),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizadoEm").notNull(),
 });
 
-export const stacks = pgTable("stacks", {
+export const Stack = pgTable("stacks", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   titulo: text("titulo").notNull(),
   ordem: integer("ordem").notNull().default(0),
   ativo: boolean("ativo").notNull().default(true),
-  criadoEm: timestamp("criado_em").notNull().defaultNow(),
-  atualizadoEm: timestamp("atualizado_em").notNull().defaultNow(),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizadoEm").notNull(),
 });
 
-export const stackProdutos = pgTable("stack_produtos", {
+export const StackProduto = pgTable("stack_produtos", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  stackId: text("stack_id").notNull().references(() => stacks.id, { onDelete: "cascade" }),
-  produtoId: text("produto_id").notNull().references(() => produtos.id, { onDelete: "cascade" }),
+  stackId: text("stackId").notNull().references(() => Stack.id, { onDelete: "cascade" }),
+  produtoId: text("produtoId").notNull().references(() => Produto.id, { onDelete: "cascade" }),
   ordem: integer("ordem").notNull().default(0),
-  criadoEm: timestamp("criado_em").notNull().defaultNow(),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
 });
 
-export const configuracaoSite = pgTable("configuracao_site", {
+export const ConfiguracaoSite = pgTable("configuracao_site", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   chave: text("chave").notNull().unique(),
   valor: text("valor").notNull(),
   descricao: text("descricao"),
-  criadoEm: timestamp("criado_em").notNull().defaultNow(),
-  atualizadoEm: timestamp("atualizado_em").notNull().defaultNow(),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizadoEm").notNull(),
 });
 
-export const sessaoAdmin = pgTable("sessao_admin", {
+export const SessaoAdmin = pgTable("sessao_admin", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   token: text("token").notNull().unique(),
   ativo: boolean("ativo").notNull().default(true),
-  expiraEm: timestamp("expira_em").notNull(),
-  criadoEm: timestamp("criado_em").notNull().defaultNow(),
+  expiraEm: timestamp("expiraEm").notNull(),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
 });
 
 // Relations
-export const produtosRelations = relations(produtos, ({ many }) => ({
-  stackProdutos: many(stackProdutos),
+export const produtosRelations = relations(Produto, ({ many }) => ({
+  stackProdutos: many(StackProduto),
 }));
 
-export const stacksRelations = relations(stacks, ({ many }) => ({
-  produtos: many(stackProdutos),
+export const stacksRelations = relations(Stack, ({ many }) => ({
+  produtos: many(StackProduto),
 }));
 
-export const stackProdutosRelations = relations(stackProdutos, ({ one }) => ({
-  stack: one(stacks, {
-    fields: [stackProdutos.stackId],
-    references: [stacks.id],
+export const stackProdutosRelations = relations(StackProduto, ({ one }) => ({
+  stack: one(Stack, {
+    fields: [StackProduto.stackId],
+    references: [Stack.id],
   }),
-  produto: one(produtos, {
-    fields: [stackProdutos.produtoId],
-    references: [produtos.id],
+  produto: one(Produto, {
+    fields: [StackProduto.produtoId],
+    references: [Produto.id],
   }),
 }));
 
 // Insert schemas
-export const insertProdutoSchema = createInsertSchema(produtos).omit({
+export const insertProdutoSchema = createInsertSchema(Produto).omit({
   id: true,
   criadoEm: true,
   atualizadoEm: true,
 });
 
-export const insertStackSchema = createInsertSchema(stacks).omit({
+export const insertStackSchema = createInsertSchema(Stack).omit({
   id: true,
   criadoEm: true,
   atualizadoEm: true,
 });
 
-export const insertStackProdutoSchema = createInsertSchema(stackProdutos).omit({
+export const insertStackProdutoSchema = createInsertSchema(StackProduto).omit({
   id: true,
   criadoEm: true,
 });
 
-export const insertConfiguracaoSiteSchema = createInsertSchema(configuracaoSite).omit({
+export const insertConfiguracaoSiteSchema = createInsertSchema(ConfiguracaoSite).omit({
   id: true,
   criadoEm: true,
   atualizadoEm: true,
 });
 
-export const insertSessaoAdminSchema = createInsertSchema(sessaoAdmin).omit({
+export const insertSessaoAdminSchema = createInsertSchema(SessaoAdmin).omit({
   id: true,
   criadoEm: true,
 });
 
 // Types
-export type Produto = typeof produtos.$inferSelect;
+export type TProduto = typeof Produto.$inferSelect;
 export type InsertProduto = z.infer<typeof insertProdutoSchema>;
-export type Stack = typeof stacks.$inferSelect;
+export type TStack = typeof Stack.$inferSelect;
 export type InsertStack = z.infer<typeof insertStackSchema>;
-export type StackProduto = typeof stackProdutos.$inferSelect;
+export type TStackProduto = typeof StackProduto.$inferSelect;
 export type InsertStackProduto = z.infer<typeof insertStackProdutoSchema>;
-export type ConfiguracaoSite = typeof configuracaoSite.$inferSelect;
+export type TConfiguracaoSite = typeof ConfiguracaoSite.$inferSelect;
 export type InsertConfiguracaoSite = z.infer<typeof insertConfiguracaoSiteSchema>;
-export type SessaoAdmin = typeof sessaoAdmin.$inferSelect;
+export type TSessaoAdmin = typeof SessaoAdmin.$inferSelect;
 export type InsertSessaoAdmin = z.infer<typeof insertSessaoAdminSchema>;

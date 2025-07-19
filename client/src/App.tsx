@@ -1,39 +1,31 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Header } from "@/components/header";
-import { FeaturedStacks } from "@/pages/featured-stacks";
-import { SearchProducts } from "@/pages/search-products";
-import { AdminDashboard } from "@/pages/admin-dashboard";
-import NotFound from "@/pages/not-found";
+import { Route, Routes } from 'react-router-dom';
+import { Header } from './components/header';
+import { AdminRoute } from './components/admin-route';
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={FeaturedStacks} />
-      <Route path="/buscar" component={SearchProducts} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+// Import actual page components
+import { FeaturedStacks } from './pages/featured-stacks';
+import { SearchProducts } from './pages/search-products';
+import { AdminDashboard } from './pages/admin-dashboard';
+import NotFound from './pages/not-found';
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <div className="min-h-screen bg-background transition-colors duration-300">
-            <Header />
-            <Router />
-          </div>
-          <Toaster />
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <main className="container mx-auto p-4">
+        <Routes>
+          <Route path="/" element={<FeaturedStacks />} />
+          <Route path="/search" element={<SearchProducts />} />
+          
+          {/* Rota de Admin Protegida */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            {/* Outras rotas de admin podem ser adicionadas aqui */}
+          </Route>
+          <Route path="*" element={<NotFound />} /> {/* Catch-all for 404 */}
+        </Routes>
+      </main>
+    </div>
   );
 }
 

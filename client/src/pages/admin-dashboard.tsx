@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useMutation } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -34,8 +35,8 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
-import { type Produto, type Stack } from "@shared/schema";
+import { useAdmin } from "@/hooks/use-admin"; // Import useAdmin hook
+import { type TProduto, type TStack } from "@shared/schema";
 
 interface ProductFormData {
   titulo: string;
@@ -50,14 +51,14 @@ interface StackFormData {
 }
 
 export function AdminDashboard() {
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAdmin, logout } = useAdmin(); // Use admin hook
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [showStackModal, setShowStackModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Produto | null>(null);
-  const [editingStack, setEditingStack] = useState<Stack | null>(null);
+  const [editingProduct, setEditingProduct] = useState<TProduto | null>(null);
+  const [editingStack, setEditingStack] = useState<TStack | null>(null);
 
   const [productForm, setProductForm] = useState<ProductFormData>({
     titulo: "",
@@ -73,12 +74,10 @@ export function AdminDashboard() {
 
   // Check authentication on mount
   useEffect(() => {
-    const token = localStorage.getItem('admin-token');
-    if (!token) {
-      setLocation('/');
-      return;
+    if (!isAdmin) {
+      // Redirect to home if not admin, the hook will handle this
     }
-  }, [setLocation]);
+  }, [isAdmin]);
 
   // Fetch data
   const { data: produtos, isLoading: produtosLoading } = useQuery({
@@ -91,14 +90,7 @@ export function AdminDashboard() {
     queryFn: () => api.getStacks(),
   });
 
-  // Mutations
-  const logoutMutation = useMutation({
-    mutationFn: () => api.logoutAdmin(),
-    onSuccess: () => {
-      toast({ title: "Logout realizado com sucesso!" });
-      setLocation('/');
-    },
-  });
+  
 
   const createProductMutation = useMutation({
     mutationFn: (data: any) => api.createProduto(data),
@@ -217,7 +209,7 @@ export function AdminDashboard() {
     setEditingStack(null);
   };
 
-  const handleEditProduct = (produto: Produto) => {
+  const handleEditProduct = (produto: TProduto) => {
     setEditingProduct(produto);
     setProductForm({
       titulo: produto.titulo,
@@ -228,7 +220,7 @@ export function AdminDashboard() {
     setShowProductModal(true);
   };
 
-  const handleEditStack = (stack: Stack) => {
+  const handleEditStack = (stack: TStack) => {
     setEditingStack(stack);
     setStackForm({
       titulo: stack.titulo,
@@ -299,8 +291,7 @@ export function AdminDashboard() {
             </div>
             <Button
               variant="outline"
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
+              onClick={() => logout()}
               className="bg-destructive/10 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -367,7 +358,7 @@ export function AdminDashboard() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          produtos.produtos.map((produto: Produto) => (
+                          produtos.produtos.map((produto: TProduto) => (
                             <TableRow key={produto.id}>
                               <TableCell>
                                 <div className="flex items-center space-x-3">

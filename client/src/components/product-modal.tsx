@@ -8,10 +8,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Heart, ShoppingCart } from "lucide-react";
-import { type Produto } from "@shared/schema";
+import { type TProduto } from "@shared/schema";
 
 interface ProductModalProps {
-  produto: Produto | null;
+  produto: TProduto | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -51,7 +51,7 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
 
             {images.length > 1 && (
               <div className="flex space-x-2 overflow-x-auto">
-                {images.map((foto, index) => (
+                {images.map((foto: string, index: number) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}

@@ -8,14 +8,14 @@ import { Pagination } from "@/components/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
-import { type Produto } from "@shared/schema";
+import { type TProduto } from "@shared/schema";
 import { useLocation } from "wouter";
 
 export function SearchProducts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
-  const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<TProduto | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [location] = useLocation();
@@ -51,7 +51,7 @@ export function SearchProducts() {
     queryFn: () => api.getProdutos(debouncedSearch, currentPage, itemsPerPage),
   });
 
-  const handleViewProduct = (produto: Produto) => {
+  const handleViewProduct = (produto: TProduto) => {
     setSelectedProduct(produto);
     setShowProductModal(true);
   };
@@ -157,7 +157,7 @@ export function SearchProducts() {
 
               {/* Products Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-                {data.produtos.map((produto: Produto) => (
+                {data.produtos.map((produto: TProduto) => (
                   <ProductCard
                     key={produto.id}
                     produto={produto}

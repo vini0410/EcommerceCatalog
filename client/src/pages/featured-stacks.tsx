@@ -7,11 +7,11 @@ import { ProductModal } from "@/components/product-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
-import { type Produto } from "@shared/schema";
+import { type TProduto } from "@shared/schema";
 import { useLocation } from "wouter";
 
 export function FeaturedStacks() {
-  const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<TProduto | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [, setLocation] = useLocation();
 
@@ -20,7 +20,7 @@ export function FeaturedStacks() {
     queryFn: () => api.getStacks(),
   });
 
-  const handleViewProduct = (produto: Produto) => {
+  const handleViewProduct = (produto: TProduto) => {
     setSelectedProduct(produto);
     setShowProductModal(true);
   };
