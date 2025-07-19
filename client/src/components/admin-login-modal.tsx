@@ -11,22 +11,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock } from "lucide-react";
-import { api } from "@/lib/api";
+import { loginAdmin } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 
 interface AdminLoginModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onLoginSuccess: () => void;
 }
 
-export function AdminLoginModal({ open, onOpenChange }: AdminLoginModalProps) {
+export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLoginModalProps) {
   const [codigo, setCodigo] = useState("");
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
 
   const loginMutation = useMutation({
-    mutationFn: (codigo: string) => api.loginAdmin(codigo),
+    mutationFn: (codigo: string) => loginAdmin(codigo),
     onSuccess: () => {
       toast({
         title: "Login realizado com sucesso!",
@@ -34,13 +33,13 @@ export function AdminLoginModal({ open, onOpenChange }: AdminLoginModalProps) {
       });
       onOpenChange(false);
       setCodigo("");
-      setLocation("/admin");
+      onLoginSuccess();
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         variant: "destructive",
-        title: "Código de acesso inválido",
-        description: "Verifique o código e tente novamente.",
+        title: "Erro no login",
+        description: error.message || "Verifique o código e tente novamente.",
       });
     },
   });

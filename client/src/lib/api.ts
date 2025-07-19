@@ -1,24 +1,38 @@
 import { apiRequest } from "./queryClient";
 
-let adminToken: string | null = localStorage.getItem('admin-token');
+export const loginAdmin = async (codigo: string) => {
+  const res = await fetch("/api/admin/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ codigo }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || "Login failed");
+  }
+  return res.json();
+};
+
+export const logoutAdmin = async () => {
+  const res = await fetch("/api/admin/logout", { method: "POST" });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || "Logout failed");
+  }
+  return res.json();
+};
+
+export const checkAuthStatus = async () => {
+  const res = await fetch("/api/admin/check");
+  if (!res.ok) {
+    throw new Error("Failed to check auth status");
+  }
+  return res.json();
+};
 
 export const api = {
-  // Admin auth
-  async loginAdmin(codigo: string) {
-    const res = await apiRequest("POST", "/api/admin/login", { codigo });
-    const data = await res.json();
-    adminToken = data.token;
-    localStorage.setItem('admin-token', adminToken);
-    return data;
-  },
-
-  async logoutAdmin() {
-    if (!adminToken) return;
-    await apiRequest("POST", "/api/admin/logout", undefined);
-    adminToken = null;
-    localStorage.removeItem('admin-token');
-  },
-
   // Produtos públicos
   async getProdutos(search?: string, page?: number, limit?: number) {
     const params = new URLSearchParams();
@@ -47,12 +61,10 @@ export const api = {
 
   // Admin - Produtos
   async createProduto(produto: any) {
-    if (!adminToken) throw new Error('Token administrativo necessário');
     const res = await fetch('/api/admin/produtos', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminToken}`
       },
       body: JSON.stringify(produto)
     });
@@ -61,12 +73,10 @@ export const api = {
   },
 
   async updateProduto(id: string, produto: any) {
-    if (!adminToken) throw new Error('Token administrativo necessário');
     const res = await fetch(`/api/admin/produtos/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminToken}`
       },
       body: JSON.stringify(produto)
     });
@@ -75,10 +85,8 @@ export const api = {
   },
 
   async deleteProduto(id: string) {
-    if (!adminToken) throw new Error('Token administrativo necessário');
     const res = await fetch(`/api/admin/produtos/${id}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     if (!res.ok) throw new Error('Erro ao remover produto');
     return res.json();
@@ -86,12 +94,10 @@ export const api = {
 
   // Admin - Stacks
   async createStack(stack: any) {
-    if (!adminToken) throw new Error('Token administrativo necessário');
     const res = await fetch('/api/admin/stacks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminToken}`
       },
       body: JSON.stringify(stack)
     });
@@ -100,12 +106,10 @@ export const api = {
   },
 
   async updateStack(id: string, stack: any) {
-    if (!adminToken) throw new Error('Token administrativo necessário');
     const res = await fetch(`/api/admin/stacks/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminToken}`
       },
       body: JSON.stringify(stack)
     });
@@ -114,24 +118,10 @@ export const api = {
   },
 
   async deleteStack(id: string) {
-    if (!adminToken) throw new Error('Token administrativo necessário');
     const res = await fetch(`/api/admin/stacks/${id}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     if (!res.ok) throw new Error('Erro ao remover stack');
     return res.json();
   }
 };
-
-// Initialize admin token
-if (adminToken) {
-  // Validate token on app startup
-  fetch('/api/admin/produtos', {
-    headers: { 'Authorization': `Bearer ${adminToken}` }
-  }).catch(() => {
-    // Invalid token, clear it
-    adminToken = null;
-    localStorage.removeItem('admin-token');
-  });
-}

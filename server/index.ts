@@ -1,10 +1,50 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import session from "express-session";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "your-secret-key", // Replace with a strong secret from .env
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000 }, // 24 hours
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.use(
+  new LocalStrategy({ usernameField: 'codigo', passwordField: 'codigo' }, (codigo, _, done) => {
+    if (codigo === process.env.ADMIN_CODE) {
+      return done(null, { username: "admin" });
+    } else {
+      return done(null, false, { message: "Incorrect code." });
+    }
+  })
+);
+
+passport.serializeUser((user: any, done) => {
+  done(null, user.username);
+});
+
+passport.deserializeUser((username: string, done) => {
+  if (username === "admin") {
+    done(null, { username: "admin" });
+  } else {
+    done(null, false);
+  }
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

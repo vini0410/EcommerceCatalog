@@ -1,16 +1,19 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Sun, Moon, Settings, Menu } from "lucide-react";
+import { Sun, Moon, Settings, Menu, LogOut } from "lucide-react";
 import { AdminLoginModal } from "./admin-login-modal";
+import { useAuth } from "../context/AuthContext";
 
 export function Header() {
-  const [location] = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isLoggedIn, logout, checkAuth } = useAuth();
 
   const navigation = [
     { href: "/", label: "🌟 Destaques", id: "destaques" },
@@ -18,9 +21,22 @@ export function Header() {
   ];
 
   const isActive = (href: string) => {
-    if (href === "/" && location === "/") return true;
-    if (href !== "/" && location.startsWith(href)) return true;
+    if (href === "/" && location.pathname === "/") return true;
+    if (href !== "/" && location.pathname.startsWith(href)) return true;
     return false;
+  };
+
+  const handleAdminClick = () => {
+    if (isLoggedIn) {
+      navigate("/admin");
+    } else {
+      setShowAdminModal(true);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
   };
 
   return (
@@ -29,7 +45,7 @@ export function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center">
+            <Link to="/" className="flex items-center">
               <div className="w-10 h-10 btn-primary rounded-full flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-lg">C</span>
               </div>
@@ -41,7 +57,7 @@ export function Header() {
               {navigation.map((item) => (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  to={item.href}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive(item.href)
                       ? "text-primary bg-primary/10"
@@ -70,14 +86,24 @@ export function Header() {
                 )}
               </Button>
 
-              {/* Admin Button */}
-              <Button
-                onClick={() => setShowAdminModal(true)}
-                className="btn-primary px-4 py-2 text-sm font-medium rounded-lg"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Admin
-              </Button>
+              {/* Admin/Logout Button */}
+              {isLoggedIn ? (
+                <Button
+                  onClick={handleLogout}
+                  className="btn-primary px-4 py-2 text-sm font-medium rounded-lg"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleAdminClick}
+                  className="btn-primary px-4 py-2 text-sm font-medium rounded-lg"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Admin
+                </Button>
+              )}
 
               {/* Mobile menu button */}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -91,7 +117,7 @@ export function Header() {
                     {navigation.map((item) => (
                       <Link
                         key={item.href}
-                        href={item.href}
+                        to={item.href}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`px-3 py-2 rounded-md text-base font-medium transition-colors ${
                           isActive(item.href)
@@ -113,6 +139,11 @@ export function Header() {
       <AdminLoginModal 
         open={showAdminModal} 
         onOpenChange={setShowAdminModal} 
+        onLoginSuccess={() => {
+          setShowAdminModal(false);
+          checkAuth();
+          navigate("/admin");
+        }}
       />
     </>
   );
