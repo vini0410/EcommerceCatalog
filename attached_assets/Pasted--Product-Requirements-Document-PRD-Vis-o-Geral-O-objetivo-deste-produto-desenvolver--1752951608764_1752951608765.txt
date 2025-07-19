@@ -1,0 +1,98 @@
+# 📄 Product Requirements Document (PRD)
+
+## 🧭 Visão Geral
+
+O objetivo deste produto é desenvolver um **aplicativo web** que funcione como um **catálogo de produtos**, oferecendo uma experiência simples e eficiente para usuários finais e uma interface de administração para manter o conteúdo atualizado.
+
+A aplicação será composta por duas áreas principais:
+
+- **Interface Pública**: voltada para exibição dos produtos.
+- **Área Administrativa**: voltada para a gestão dos produtos e stacks.
+
+---
+
+## 🎯 Objetivos do Produto
+
+- Oferecer uma **navegação simples e visualmente organizada** de produtos por meio de stacks.
+- Permitir a **busca e navegação eficiente** com suporte a paginação.
+- Proporcionar uma **interface administrativa** leve, segura e funcional.
+- Oferecer uma **experiência personalizada de tema (claro/escuro)** com persistência local.
+
+---
+
+## 📑 Funcionalidades
+
+### 1. Interface Pública
+
+#### 1.1 Página de Destaques
+
+- Exibe diversas **stacks** (grupos de produtos).
+- Cada stack mostra um conjunto de produtos com ordenação definida.
+- A ordem das stacks na página é configurável.
+
+#### 1.2 Página de Busca/Listagem
+
+- Exibe todos os produtos do catálogo.
+- Inclui uma **barra de busca** (por nome, código ou outro critério).
+- Suporte à **paginação via backend**, com as opções:
+  - 20 produtos por página
+  - 50 produtos por página
+  - 100 produtos por página
+
+#### 1.3 Alternância de Tema (Claro/Escuro)
+
+- Um botão com **ícone de tema** estará visível no canto superior direito da interface, ao lado do botão **Admin**.
+- O usuário poderá alternar entre **modo claro** e **modo escuro** com um clique.
+- A **preferência de tema será armazenada no navegador (localStorage)**, garantindo que o tema selecionado persista nas visitas futuras.
+
+---
+
+### 2. Área Administrativa
+
+#### 2.1 Acesso
+
+- Botão **"Admin"** localizado no canto superior direito.
+- Ao clicar, exibe um **popup solicitando um código de acesso**.
+- Se o código for válido:
+  - A **flag de autorização** é ativada.
+  - O usuário é redirecionado para a **página de edição**.
+
+#### 2.2 Funcionalidades da Página de Edição
+
+##### Edição de Produtos
+
+- Atributos editáveis:
+  - Título
+  - Valor bruto
+  - Valor com desconto
+    - O sistema deve calcular automaticamente a **porcentagem de desconto**.
+  - Lista de fotos:
+    - A **primeira imagem** (`fotos[0]`) é a **foto favorita**, exibida:
+      - Nas stacks
+      - Na listagem
+      - Ao abrir o produto
+    - A ordem das imagens deve ser reordenável.
+
+##### Edição de Stacks
+
+- Atributos editáveis:
+  - Título da stack
+  - Ordem de exibição (1, 2, 3...)
+  - Lista de produtos:
+    - A ordem dos produtos dentro da stack também deve ser personalizável.
+
+---
+
+## 🧱 Modelos de Dados (Simplificados)
+
+### Produto
+
+```ts
+Produto {
+  id: string
+  titulo: string
+  valorBruto: number
+  valorDesconto: number
+  descontoCalculado: number // valor derivado
+  fotos: string[] // a foto favorita é fotos[0]
+}
