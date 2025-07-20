@@ -63,15 +63,7 @@ export function ProductCard({ produto, onViewDetails }: ProductCardProps) {
           )}
         </div>
 
-        <Button 
-          className="w-full btn-primary text-sm font-medium"
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewDetails(produto);
-          }}
-        >
-          🛒 Ver Produto
-        </Button>
+        
       </CardContent>
     </Card>
   );

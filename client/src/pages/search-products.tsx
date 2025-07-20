@@ -17,38 +17,38 @@ export function SearchProducts() {
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [location] = useLocation();
+  const [stackId, setStackId] = useState<string | undefined>(undefined);
+  const [, setLocation] = useLocation();
 
-  // Extract search from URL params
+  // Extract search and stackId from URL params on location change
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const searchParam = params.get('q');
-    if (searchParam) {
-      setSearchQuery(searchParam);
-      setDebouncedSearch(searchParam);
-    }
-  }, [location]);
+    const qParam = params.get('q');
+    const stackIdParam = params.get('stackId');
 
-  // Debounce search
+    setSearchQuery(qParam || "");
+    setStackId(stackIdParam || undefined);
+    setCurrentPage(1); // Reset page when search or stackId changes
+  }, [location.search]); // Depend on location.search to react to URL changes
+
+  // Debounce search query and update URL
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-      setCurrentPage(1);
-      
-      // Update URL with search parameter
       const params = new URLSearchParams();
       if (searchQuery) params.set('q', searchQuery);
+      if (stackId) params.set('stackId', stackId);
       const newUrl = `/buscar${params.toString() ? `?${params.toString()}` : ''}`;
-      window.history.replaceState({}, '', newUrl);
+      if (window.location.search !== params.toString()) { // Only update if different
+        setLocation(newUrl);
+      }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, stackId, setLocation]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["/api/produtos", debouncedSearch, currentPage, itemsPerPage],
-    queryFn: () => api.getProdutos(debouncedSearch, currentPage, itemsPerPage),
+    queryKey: ["/api/produtos", searchQuery, currentPage, itemsPerPage, stackId],
+    queryFn: () => api.getProdutos(searchQuery, currentPage, itemsPerPage, stackId),
   });
 
   const handleViewProduct = (produto: Produto) => {
@@ -77,7 +77,7 @@ export function SearchProducts() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-              🔍 Buscar <span className="text-gradient">Produtos</span>
+              ✨ Nossos <span className="text-gradient">Produtos</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Encontre exatamente o que você está procurando em nosso catálogo

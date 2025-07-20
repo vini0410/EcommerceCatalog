@@ -41,12 +41,20 @@ interface ProductFormData {
   titulo: string;
   valorBruto: string;
   valorDesconto: string;
+  descricao: string;
   fotos: string[];
+}
+
+interface SelectedProduct {
+  id: string;
+  titulo: string;
+  ordem: number;
 }
 
 interface StackFormData {
   titulo: string;
   ordem: string;
+  produtos: SelectedProduct[];
 }
 
 export function AdminDashboard() {
@@ -63,13 +71,17 @@ export function AdminDashboard() {
     titulo: "",
     valorBruto: "",
     valorDesconto: "",
+    descricao: "",
     fotos: [""],
   });
 
   const [stackForm, setStackForm] = useState<StackFormData>({
     titulo: "",
     ordem: "1",
+    produtos: [],
   });
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
 
   // Check authentication on mount
   useEffect(() => {
@@ -79,6 +91,28 @@ export function AdminDashboard() {
       return;
     }
   }, [setLocation]);
+
+  // Reset selected products when stack modal is closed or a new stack is being created
+  useEffect(() => {
+    if (!showStackModal) {
+      setSelectedProducts([]);
+      setProductSearchTerm("");
+    }
+  }, [showStackModal]);
+
+  // Populate selected products when editing an existing stack
+  useEffect(() => {
+    if (editingStack && editingStack.produtos) {
+      const productsForStack = editingStack.produtos.map((sp: any) => ({
+        id: sp.produto.id,
+        titulo: sp.produto.titulo,
+        ordem: sp.ordem,
+      })).sort((a: any, b: any) => a.ordem - b.ordem);
+      setSelectedProducts(productsForStack);
+    } else {
+      setSelectedProducts([]);
+    }
+  }, [editingStack]);
 
   // Fetch data
   const { data: produtos, isLoading: produtosLoading } = useQuery({
@@ -121,6 +155,7 @@ export function AdminDashboard() {
     mutationFn: ({ id, data }: { id: string; data: any }) => api.updateProduto(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/produtos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stacks"] }); // Invalidate stacks to reflect product changes
       setShowProductModal(false);
       resetProductForm();
       toast({ title: "Produto atualizado com sucesso!" });
@@ -138,6 +173,7 @@ export function AdminDashboard() {
     mutationFn: (id: string) => api.deleteProduto(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/produtos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stacks"] }); // Invalidate stacks to reflect product deletion
       toast({ title: "Produto removido com sucesso!" });
     },
     onError: (error: any) => {
@@ -204,6 +240,7 @@ export function AdminDashboard() {
       titulo: "",
       valorBruto: "",
       valorDesconto: "",
+      descricao: "",
       fotos: [""],
     });
     setEditingProduct(null);
@@ -213,8 +250,11 @@ export function AdminDashboard() {
     setStackForm({
       titulo: "",
       ordem: "1",
+      produtos: [],
     });
     setEditingStack(null);
+    setSelectedProducts([]);
+    setProductSearchTerm("");
   };
 
   const handleEditProduct = (produto: Produto) => {
@@ -223,6 +263,7 @@ export function AdminDashboard() {
       titulo: produto.titulo,
       valorBruto: produto.valorBruto.toString(),
       valorDesconto: produto.valorDesconto?.toString() || "",
+      descricao: produto.descricao || "",
       fotos: produto.fotos.length > 0 ? produto.fotos : [""],
     });
     setShowProductModal(true);
@@ -233,6 +274,7 @@ export function AdminDashboard() {
     setStackForm({
       titulo: stack.titulo,
       ordem: stack.ordem.toString(),
+      produtos: [], // This will be populated by the useEffect
     });
     setShowStackModal(true);
   };
@@ -242,6 +284,7 @@ export function AdminDashboard() {
       titulo: productForm.titulo,
       valorBruto: parseFloat(productForm.valorBruto),
       valorDesconto: productForm.valorDesconto ? parseFloat(productForm.valorDesconto) : undefined,
+      descricao: productForm.descricao,
       fotos: productForm.fotos.filter(foto => foto.trim() !== ""),
     };
 
@@ -256,6 +299,10 @@ export function AdminDashboard() {
     const data = {
       titulo: stackForm.titulo,
       ordem: parseInt(stackForm.ordem),
+      produtos: selectedProducts.map((p, index) => ({
+        productId: p.id,
+        ordem: index + 1, // Assign order based on current array index
+      })),
     };
 
     if (editingStack) {
@@ -283,6 +330,41 @@ export function AdminDashboard() {
     }));
   };
 
+  const addProductToStack = (product: Produto) => {
+    if (!selectedProducts.some(p => p.id === product.id)) {
+      setSelectedProducts(prev => [...prev, { id: product.id, titulo: product.titulo, ordem: prev.length + 1 }]);
+    }
+  };
+
+  const removeProductFromStack = (productId: string) => {
+    setSelectedProducts(prev => prev.filter(p => p.id !== productId).map((p, index) => ({ ...p, ordem: index + 1 })));
+  };
+
+  const moveProductInStack = (productId: string, direction: 'up' | 'down') => {
+    setSelectedProducts(prev => {
+      const index = prev.findIndex(p => p.id === productId);
+      if (index === -1) return prev;
+
+      const newProducts = [...prev];
+      const [movedProduct] = newProducts.splice(index, 1);
+
+      if (direction === 'up' && index > 0) {
+        newProducts.splice(index - 1, 0, movedProduct);
+      } else if (direction === 'down' && index < newProducts.length) {
+        newProducts.splice(index + 1, 0, movedProduct);
+      } else {
+        return prev; // No change if already at the top/bottom
+      }
+
+      return newProducts.map((p, i) => ({ ...p, ordem: i + 1 }));
+    });
+  };
+
+  const filteredAvailableProducts = produtos?.produtos.filter(product =>
+    product.titulo.toLowerCase().includes(productSearchTerm.toLowerCase()) &&
+    !selectedProducts.some(p => p.id === product.id)
+  ) || [];
+
   return (
     <div className="min-h-screen pt-16">
       {/* Header */}
@@ -297,15 +379,7 @@ export function AdminDashboard() {
                 Gerencie produtos e stacks do seu catálogo
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-              className="bg-destructive/10 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
+            
           </div>
         </div>
       </section>
@@ -487,6 +561,13 @@ export function AdminDashboard() {
                           </div>
                           <div className="flex space-x-2">
                             <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setLocation(`/buscar?stackId=${stack.id}`)}
+                            >
+                              Ver Produtos
+                            </Button>
+                            <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEditStack(stack)}
@@ -577,20 +658,31 @@ export function AdminDashboard() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="valorDesconto">Valor com Desconto (R$)</Label>
-                <Input
-                  id="valorDesconto"
-                  type="number"
-                  step="0.01"
-                  value={productForm.valorDesconto}
-                  onChange={(e) => setProductForm(prev => ({ ...prev, valorDesconto: e.target.value }))}
-                  placeholder="0.00 (opcional)"
-                />
-              </div>
+              <Label htmlFor="valorDesconto">Valor com Desconto (R$)</Label>
+              <Input
+                id="valorDesconto"
+                type="number"
+                step="0.01"
+                value={productForm.valorDesconto}
+                onChange={(e) => setProductForm(prev => ({ ...prev, valorDesconto: e.target.value }))}
+                placeholder="0.00 (opcional)"
+              />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label>Fotos (URLs)</Label>
+          <div className="space-y-2">
+            <Label htmlFor="descricao">Descrição</Label>
+            <Textarea
+              id="descricao"
+              value={productForm.descricao}
+              onChange={(e) => setProductForm(prev => ({ ...prev, descricao: e.target.value }))}
+              placeholder="Descrição detalhada do produto..."
+              rows={4}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Fotos (URLs)</Label>
               {productForm.fotos.map((foto, index) => (
                 <div key={index} className="flex space-x-2">
                   <Input
@@ -647,7 +739,7 @@ export function AdminDashboard() {
 
       {/* Stack Modal */}
       <Dialog open={showStackModal} onOpenChange={setShowStackModal}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingStack ? "Editar Stack" : "Nova Stack"}
@@ -675,6 +767,77 @@ export function AdminDashboard() {
                 onChange={(e) => setStackForm(prev => ({ ...prev, ordem: e.target.value }))}
                 placeholder="1"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="product-search">Adicionar Produtos</Label>
+              <Input
+                id="product-search"
+                placeholder="Buscar produtos..."
+                value={productSearchTerm}
+                onChange={(e) => setProductSearchTerm(e.target.value)}
+              />
+              <div className="max-h-48 overflow-y-auto border rounded-md p-2">
+                {produtosLoading ? (
+                  <p className="text-sm text-muted-foreground">Carregando produtos...</p>
+                ) : filteredAvailableProducts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum produto encontrado ou todos já adicionados.</p>
+                ) : (
+                  filteredAvailableProducts.map((product: Produto) => (
+                    <div key={product.id} className="flex items-center justify-between py-1">
+                      <span className="text-sm">{product.titulo}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addProductToStack(product)}
+                      >
+                        Adicionar
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Produtos na Stack ({selectedProducts.length})</Label>
+              <div className="max-h-48 overflow-y-auto border rounded-md p-2">
+                {selectedProducts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum produto selecionado para esta stack.</p>
+                ) : (
+                  selectedProducts.map((product, index) => (
+                    <div key={product.id} className="flex items-center justify-between py-1 border-b last:border-b-0">
+                      <span className="text-sm">{index + 1}. {product.titulo}</span>
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveProductInStack(product.id, 'up')}
+                          disabled={index === 0}
+                        >
+                          ⬆️
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveProductInStack(product.id, 'down')}
+                          disabled={index === selectedProducts.length - 1}
+                        >
+                          ⬇️
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeProductFromStack(product.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
 

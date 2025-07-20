@@ -2,25 +2,27 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProdutoSchema, insertStackSchema, insertStackProdutoSchema } from "@shared/schema";
+import passport from "passport";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware para validação de admin
-  const requireAdmin = async (req: any, res: any, next: any) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token || !(await storage.validateSessaoAdmin(token))) {
-      return res.status(401).json({ message: 'Acesso não autorizado' });
+  const requireAdmin = (req: any, res: any, next: any) => {
+    console.log("isAuthenticated:", req.isAuthenticated());
+    if (req.isAuthenticated()) {
+      return next();
     }
-    next();
+    res.status(401).json({ message: 'Acesso não autorizado' });
   };
 
   // Produtos públicos
   app.get("/api/produtos", async (req, res) => {
     try {
-      const { search, page = 1, limit = 20 } = req.query;
+      const { search, page = 1, limit = 20, stackId } = req.query;
       const resultado = await storage.getProdutos(
         search as string,
         parseInt(page as string),
-        parseInt(limit as string)
+        parseInt(limit as string),
+        stackId as string
       );
       res.json(resultado);
     } catch (error) {
@@ -51,40 +53,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Login admin
-  app.post("/api/admin/login", async (req, res) => {
-    try {
-      const { codigo } = req.body;
-      const codigoAdmin = process.env.ADMIN_CODE || "admin123";
-      
-      if (codigo !== codigoAdmin) {
-        return res.status(401).json({ message: "Código de acesso inválido" });
+  app.post("/api/admin/login", (req, res, next) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
+      if (err) {
+        return next(err);
       }
-
-      // Criar sessão admin
-      const token = crypto.randomUUID();
-      const expiraEm = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
-      
-      await storage.createSessaoAdmin({
-        token,
-        expiraEm,
-        ativo: true
+      if (!user) {
+        return res.status(401).json({ message: info ? info.message : "Credenciais inválidas" });
+      }
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+        return res.json({ message: "Login successful", user: req.user });
       });
-
-      res.json({ token });
-    } catch (error) {
-      res.status(500).json({ message: "Erro no login administrativo" });
-    }
+    })(req, res, next);
   });
 
-  app.post("/api/admin/logout", requireAdmin, async (req, res) => {
-    try {
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (token) {
-        await storage.deleteSessaoAdmin(token);
+  app.post("/api/admin/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) {
+        return next(err);
       }
-      res.json({ message: "Logout realizado com sucesso" });
-    } catch (error) {
-      res.status(500).json({ message: "Erro no logout" });
+      res.json({ message: "Logout successful" });
+    });
+  });
+
+  app.get("/api/admin/check", (req, res) => {
+    if (req.isAuthenticated()) {
+      res.json({ isAuthenticated: true, user: req.user });
+    } else {
+      res.json({ isAuthenticated: false });
     }
   });
 
@@ -121,8 +120,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CRUD Stacks (Admin)
   app.post("/api/admin/stacks", requireAdmin, async (req, res) => {
     try {
-      const stackData = insertStackSchema.parse(req.body);
-      const stack = await storage.createStack(stackData);
+      const { produtos, ...stackData } = insertStackSchema.parse(req.body);
+      const stack = await storage.createStack(stackData, produtos);
       res.status(201).json(stack);
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Erro ao criar stack" });
@@ -131,8 +130,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/admin/stacks/:id", requireAdmin, async (req, res) => {
     try {
-      const stackData = insertStackSchema.partial().parse(req.body);
-      const stack = await storage.updateStack(req.params.id, stackData);
+      const { produtos, ...stackData } = insertStackSchema.partial().parse(req.body);
+      const stack = await storage.updateStack(req.params.id, stackData, produtos);
       res.json(stack);
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Erro ao atualizar stack" });
