@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // ou "mysql", "sqlite", dependendo da sua escolha
+  url      = env("DATABASE_URL")
+}
+
+model Produto {
+  id               String    @id @default(cuid())
+  titulo           String
+  valorBruto       Float
+  valorDesconto    Float?
+  descontoCalculado Float?  // campo calculado automaticamente
+  descricao        String? // Descrição detalhada do produto
+  fotos            String[] // array de URLs das fotos
+  ativo            Boolean  @default(true)
+  
+  // Timestamps
+  criadoEm         DateTime @default(now())
+  atualizadoEm     DateTime @updatedAt
+  
+  // Relacionamentos
+  stackProdutos    StackProduto[]
+  
+  @@map("produtos")
+}
+
+model Stack {
+  id          String    @id @default(cuid())
+  titulo      String
+  ordem       Int       @default(0) // ordem de exibição na página
+  ativo       Boolean   @default(true)
+  
+  // Timestamps
+  criadoEm    DateTime  @default(now())
+  atualizadoEm DateTime @updatedAt
+  
+  // Relacionamentos
+  produtos    StackProduto[]
+  
+  @@map("stacks")
+  @@index([ordem])
+}
+
+model StackProduto {
+  id        String  @id @default(cuid())
+  stackId   String
+  produtoId String
+  ordem     Int     @default(0) // ordem do produto dentro da stack
+  
+  // Relacionamentos
+  stack     Stack   @relation(fields: [stackId], references: [id], onDelete: Cascade)
+  produto   Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  criadoEm  DateTime @default(now())
+  
+  @@map("stack_produtos")
+  @@unique([stackId, produtoId]) // um produto não pode estar duplicado na mesma stack
+  @@index([stackId, ordem])
+  @@index([produtoId])
+}
+
+model ConfiguracaoSite {
+  id               String   @id @default(cuid())
+  chave            String   @unique
+  valor            String
+  descricao        String?
+  
+  // Timestamps
+  criadoEm         DateTime @default(now())
+  atualizadoEm     DateTime @updatedAt
+  
+  @@map("configuracao_site")
+}
+
+model SessaoAdmin {
+  id           String   @id @default(cuid())
+  token        String   @unique
+  ativo        Boolean  @default(true)
+  expiraEm     DateTime
+  
+  // Timestamps
+  criadoEm     DateTime @default(now())
+  
+  @@map("sessao_admin")
+  @@index([token])
+  @@index([expiraEm])
+}
