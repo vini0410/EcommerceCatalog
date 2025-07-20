@@ -9,8 +9,15 @@ export const loginAdmin = async (codigo: string) => {
     body: JSON.stringify({ codigo }),
   });
   if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || "Login failed");
+    let errorMessage = `HTTP error! Status: ${res.status}`;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch (e) {
+      const errorText = await res.text();
+      errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+    }
+    throw new Error(errorMessage);
   }
   return res.json();
 };
@@ -18,8 +25,15 @@ export const loginAdmin = async (codigo: string) => {
 export const logoutAdmin = async () => {
   const res = await fetch("/api/admin/logout", { method: "POST" });
   if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || "Logout failed");
+    let errorMessage = `HTTP error! Status: ${res.status}`;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch (e) {
+      const errorText = await res.text();
+      errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+    }
+    throw new Error(errorMessage);
   }
   return res.json();
 };
@@ -34,11 +48,12 @@ export const checkAuthStatus = async () => {
 
 export const api = {
   // Produtos públicos
-  async getProdutos(search?: string, page?: number, limit?: number) {
+  async getProdutos(search?: string, page?: number, limit?: number, stackId?: string) {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     if (page) params.append('page', page.toString());
     if (limit) params.append('limit', limit.toString());
+    if (stackId) params.append('stackId', stackId);
     
     const url = `/api/produtos${params.toString() ? `?${params.toString()}` : ''}`;
     const res = await fetch(url);
@@ -68,7 +83,10 @@ export const api = {
       },
       body: JSON.stringify(produto)
     });
-    if (!res.ok) throw new Error('Erro ao criar produto');
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Erro ao criar produto');
+    }
     return res.json();
   },
 
@@ -80,7 +98,10 @@ export const api = {
       },
       body: JSON.stringify(produto)
     });
-    if (!res.ok) throw new Error('Erro ao atualizar produto');
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Erro ao atualizar produto');
+    }
     return res.json();
   },
 

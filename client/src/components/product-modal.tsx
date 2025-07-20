@@ -38,9 +38,9 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
           </div>
         </DialogHeader>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="flex flex-col md:flex-row gap-8">
           {/* Product Images */}
-          <div>
+          <div className="md:w-1/2">
             <div className="mb-4">
               <img
                 src={images[selectedImageIndex]}
@@ -73,9 +73,12 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
           </div>
 
           {/* Product Info */}
-          <div>
+          <div className="md:w-1/2 text-center md:text-left">
+            <DialogTitle className="text-2xl font-bold text-foreground mb-4">
+              {produto.titulo}
+            </DialogTitle>
             <div className="mb-6">
-              <div className="flex items-center space-x-4 mb-4">
+              <div className="flex items-center justify-center md:justify-start space-x-4 mb-4">
                 {hasDiscount && (
                   <Badge className="btn-coral text-white">
                     -{discountPercent}% OFF
@@ -86,7 +89,7 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
                 </Badge>
               </div>
 
-              <div className="flex items-center space-x-3 mb-4">
+              <div className="flex items-center justify-center md:justify-start space-x-3 mb-4">
                 <span className="text-3xl font-bold text-foreground">
                   R$ {produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)}
                 </span>
@@ -98,27 +101,8 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
               </div>
 
               <p className="text-muted-foreground mb-6">
-                Produto premium com qualidade excepcional. Confira todos os detalhes e características especiais deste item cuidadosamente selecionado.
+                {produto.descricao || "Nenhuma descrição disponível para este produto."}
               </p>
-
-              <div className="space-y-4">
-                <Button
-                  size="lg"
-                  className="w-full btn-primary text-lg font-medium"
-                >
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  Adicionar ao Carrinho
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
-                >
-                  <Heart className="h-5 w-5 mr-2" />
-                  Adicionar aos Favoritos
-                </Button>
-              </div>
             </div>
           </div>
         </div>

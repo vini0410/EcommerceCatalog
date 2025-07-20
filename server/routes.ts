@@ -7,6 +7,7 @@ import passport from "passport";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware para validação de admin
   const requireAdmin = (req: any, res: any, next: any) => {
+    console.log("isAuthenticated:", req.isAuthenticated());
     if (req.isAuthenticated()) {
       return next();
     }
@@ -16,11 +17,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Produtos públicos
   app.get("/api/produtos", async (req, res) => {
     try {
-      const { search, page = 1, limit = 20 } = req.query;
+      const { search, page = 1, limit = 20, stackId } = req.query;
       const resultado = await storage.getProdutos(
         search as string,
         parseInt(page as string),
-        parseInt(limit as string)
+        parseInt(limit as string),
+        stackId as string
       );
       res.json(resultado);
     } catch (error) {
@@ -118,8 +120,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CRUD Stacks (Admin)
   app.post("/api/admin/stacks", requireAdmin, async (req, res) => {
     try {
-      const stackData = insertStackSchema.parse(req.body);
-      const stack = await storage.createStack(stackData);
+      const { produtos, ...stackData } = insertStackSchema.parse(req.body);
+      const stack = await storage.createStack(stackData, produtos);
       res.status(201).json(stack);
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Erro ao criar stack" });
@@ -128,8 +130,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/admin/stacks/:id", requireAdmin, async (req, res) => {
     try {
-      const stackData = insertStackSchema.partial().parse(req.body);
-      const stack = await storage.updateStack(req.params.id, stackData);
+      const { produtos, ...stackData } = insertStackSchema.partial().parse(req.body);
+      const stack = await storage.updateStack(req.params.id, stackData, produtos);
       res.json(stack);
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Erro ao atualizar stack" });

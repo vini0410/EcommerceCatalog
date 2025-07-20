@@ -6,13 +6,14 @@ import { z } from "zod";
 export const produtos = pgTable("produtos", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   titulo: text("titulo").notNull(),
-  valorBruto: real("valor_bruto").notNull(),
-  valorDesconto: real("valor_desconto"),
-  descontoCalculado: real("desconto_calculado"),
+  valorBruto: real("valorBruto").notNull(),
+  valorDesconto: real("valorDesconto"),
+  descontoCalculado: real("descontoCalculado"),
+  descricao: text("descricao"),
   fotos: text("fotos").array().notNull().default([]),
   ativo: boolean("ativo").notNull().default(true),
-  criadoEm: timestamp("criado_em").notNull().defaultNow(),
-  atualizadoEm: timestamp("atualizado_em").notNull().defaultNow(),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizadoEm").notNull().defaultNow(),
 });
 
 export const stacks = pgTable("stacks", {
@@ -20,16 +21,16 @@ export const stacks = pgTable("stacks", {
   titulo: text("titulo").notNull(),
   ordem: integer("ordem").notNull().default(0),
   ativo: boolean("ativo").notNull().default(true),
-  criadoEm: timestamp("criado_em").notNull().defaultNow(),
-  atualizadoEm: timestamp("atualizado_em").notNull().defaultNow(),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizadoEm").notNull().defaultNow(),
 });
 
 export const stackProdutos = pgTable("stack_produtos", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  stackId: text("stack_id").notNull().references(() => stacks.id, { onDelete: "cascade" }),
-  produtoId: text("produto_id").notNull().references(() => produtos.id, { onDelete: "cascade" }),
+  stackId: text("stackId").notNull().references(() => stacks.id, { onDelete: "cascade" }),
+  produtoId: text("produtoId").notNull().references(() => produtos.id, { onDelete: "cascade" }),
   ordem: integer("ordem").notNull().default(0),
-  criadoEm: timestamp("criado_em").notNull().defaultNow(),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
 });
 
 export const configuracaoSite = pgTable("configuracao_site", {
@@ -37,16 +38,16 @@ export const configuracaoSite = pgTable("configuracao_site", {
   chave: text("chave").notNull().unique(),
   valor: text("valor").notNull(),
   descricao: text("descricao"),
-  criadoEm: timestamp("criado_em").notNull().defaultNow(),
-  atualizadoEm: timestamp("atualizado_em").notNull().defaultNow(),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizadoEm").notNull().defaultNow(),
 });
 
 export const sessaoAdmin = pgTable("sessao_admin", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   token: text("token").notNull().unique(),
   ativo: boolean("ativo").notNull().default(true),
-  expiraEm: timestamp("expira_em").notNull(),
-  criadoEm: timestamp("criado_em").notNull().defaultNow(),
+  expiraEm: timestamp("expiraEm").notNull(),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
 });
 
 // Relations
@@ -80,6 +81,11 @@ export const insertStackSchema = createInsertSchema(stacks).omit({
   id: true,
   criadoEm: true,
   atualizadoEm: true,
+}).extend({
+  produtos: z.array(z.object({
+    productId: z.string(),
+    ordem: z.number(),
+  })).optional(),
 });
 
 export const insertStackProdutoSchema = createInsertSchema(stackProdutos).omit({

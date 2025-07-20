@@ -4,7 +4,7 @@ import { eq, desc, asc, and, ilike, or } from "drizzle-orm";
 
 export interface IStorage {
   // Produtos
-  getProdutos(search?: string, page?: number, limit?: number): Promise<{ produtos: Produto[], total: number }>;
+  getProdutos(search?: string, page?: number, limit?: number, stackId?: string): Promise<{ produtos: Produto[], total: number }>;
   getProdutoById(id: string): Promise<Produto | undefined>;
   createProduto(produto: InsertProduto): Promise<Produto>;
   updateProduto(id: string, produto: Partial<InsertProduto>): Promise<Produto>;
@@ -13,8 +13,8 @@ export interface IStorage {
   // Stacks
   getStacks(): Promise<(Stack & { produtos: (StackProduto & { produto: Produto })[] })[]>;
   getStackById(id: string): Promise<Stack | undefined>;
-  createStack(stack: InsertStack): Promise<Stack>;
-  updateStack(id: string, stack: Partial<InsertStack>): Promise<Stack>;
+  createStack(stack: InsertStack, produtos?: { productId: string, ordem: number }[]): Promise<Stack>;
+  updateStack(id: string, stack: Partial<InsertStack>, produtosData?: { productId: string, ordem: number }[]): Promise<Stack>;
   deleteStack(id: string): Promise<void>;
 
   // Stack Produtos
@@ -33,31 +33,37 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getProdutos(search?: string, page: number = 1, limit: number = 20): Promise<{ produtos: Produto[], total: number }> {
+  async getProdutos(search?: string, page: number = 1, limit: number = 20, stackId?: string): Promise<{ produtos: Produto[], total: number }> {
     const offset = (page - 1) * limit;
     
-    const baseCondition = eq(produtos.ativo, true);
+    let query = db.select().from(produtos);
+    let countQuery = db.select({ count: produtos.id }).from(produtos);
+
+    let conditions = [eq(produtos.ativo, true)];
+
+    if (stackId) {
+      query = query.innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId));
+      countQuery = countQuery.innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId));
+      conditions.push(eq(stackProdutos.stackId, stackId));
+    }
     
-    const whereCondition = search ? 
-      and(
-        baseCondition,
-        or(
-          ilike(produtos.titulo, `%${search}%`),
-          ilike(produtos.id, `%${search}%`)
-        )
-      ) : baseCondition;
+    if (search) {
+      conditions.push(or(
+        ilike(produtos.titulo, `%${search}%`),
+        ilike(produtos.id, `%${search}%`)
+      ));
+    }
 
     const [produtosList, totalResult] = await Promise.all([
-      db.select().from(produtos)
-        .where(whereCondition)
+      query.where(and(...conditions))
         .limit(limit)
         .offset(offset)
         .orderBy(desc(produtos.criadoEm)),
-      db.select({ count: produtos.id }).from(produtos).where(whereCondition)
+      countQuery.where(and(...conditions))
     ]);
 
     return {
-      produtos: produtosList,
+      produtos: produtosList.map(row => row.produtos || row), // Adjust for innerJoin result structure
       total: totalResult.length || 0
     };
   }
@@ -137,7 +143,7 @@ export class DatabaseStorage implements IStorage {
     return stack;
   }
 
-  async createStack(stack: InsertStack): Promise<Stack> {
+  async createStack(stack: InsertStack, produtosData?: { productId: string, ordem: number }[]): Promise<Stack> {
     const [novaStack] = await db
       .insert(stacks)
       .values({
@@ -145,10 +151,21 @@ export class DatabaseStorage implements IStorage {
         atualizadoEm: new Date()
       })
       .returning();
+
+    if (produtosData && produtosData.length > 0) {
+      const stackProdutosToInsert = produtosData.map(p => ({
+        stackId: novaStack.id,
+        produtoId: p.productId,
+        ordem: p.ordem,
+        criadoEm: new Date(),
+      }));
+      await db.insert(stackProdutos).values(stackProdutosToInsert);
+    }
+
     return novaStack;
   }
 
-  async updateStack(id: string, stack: Partial<InsertStack>): Promise<Stack> {
+  async updateStack(id: string, stack: Partial<InsertStack>, produtosData?: { productId: string, ordem: number }[]): Promise<Stack> {
     const [stackAtualizada] = await db
       .update(stacks)
       .set({
@@ -157,6 +174,23 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(stacks.id, id))
       .returning();
+
+    if (produtosData !== undefined) {
+      // Delete existing stack products for this stack
+      await db.delete(stackProdutos).where(eq(stackProdutos.stackId, id));
+
+      // Insert new stack products
+      if (produtosData.length > 0) {
+        const stackProdutosToInsert = produtosData.map(p => ({
+          stackId: id,
+          produtoId: p.productId,
+          ordem: p.ordem,
+          criadoEm: new Date(),
+        }));
+        await db.insert(stackProdutos).values(stackProdutosToInsert);
+      }
+    }
+
     return stackAtualizada;
   }
 

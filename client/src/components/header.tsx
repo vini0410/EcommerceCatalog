@@ -17,7 +17,8 @@ export function Header() {
 
   const navigation = [
     { href: "/", label: "🌟 Destaques", id: "destaques" },
-    { href: "/buscar", label: "🔍 Buscar Produtos", id: "busca" },
+    { href: "/buscar", label: "❤️ Nossos produtos", id: "busca" },
+    ...(isLoggedIn ? [{ href: "/admin", label: "⚙️ Gestão", id: "gestao" }] : []),
   ];
 
   const isActive = (href: string) => {
@@ -139,9 +140,9 @@ export function Header() {
       <AdminLoginModal 
         open={showAdminModal} 
         onOpenChange={setShowAdminModal} 
-        onLoginSuccess={() => {
+        onLoginSuccess={async () => {
           setShowAdminModal(false);
-          checkAuth();
+          await checkAuth();
           navigate("/admin");
         }}
       />

@@ -109,14 +109,7 @@ export function FeaturedStacks() {
                     <h2 className="text-2xl md:text-3xl font-bold text-foreground">
                       {stack.titulo}
                     </h2>
-                    <Button
-                      variant="ghost"
-                      onClick={handleViewAllProducts}
-                      className="text-primary hover:text-primary/80 font-medium"
-                    >
-                      Ver todos
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
+                    
                   </div>
 
                   {stack.produtos.length === 0 ? (
