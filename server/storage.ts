@@ -141,15 +141,18 @@ export class DatabaseStorage implements IStorage {
     const stacksList = await query.orderBy(asc(stacks.ordem));
     console.log(`Stacks retrieved: ${stacksList.length} stacks`);
     
-    const stacksWithProdutos = await Promise.all(
+    let stacksWithProdutos = await Promise.all(
       stacksList.map(async (stack) => {
+        const productConditions = [eq(stackProdutos.stackId, stack.id)];
+        if (!includeInactive) {
+          productConditions.push(eq(produtos.ativo, true)); // Only include active products for public view
+        }
+
         const stackProdutosList = await db
           .select()
           .from(stackProdutos)
           .innerJoin(produtos, eq(stackProdutos.produtoId, produtos.id))
-          .where(
-            eq(stackProdutos.stackId, stack.id)
-          )
+          .where(and(...productConditions))
           .orderBy(asc(stackProdutos.ordem));
 
         return {
@@ -161,6 +164,11 @@ export class DatabaseStorage implements IStorage {
         };
       })
     );
+
+    // Filter out stacks that have no active products for public view
+    if (!includeInactive) {
+      stacksWithProdutos = stacksWithProdutos.filter(stack => stack.produtos.length > 0);
+    }
 
     return stacksWithProdutos;
   }
