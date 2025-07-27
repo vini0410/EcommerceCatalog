@@ -206,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Reordering stacks");
     console.log("Request body for reorderStacks:", req.body);
     try {
-      const { stacks: reorderedStacks } = reorderStacksSchema.parse(req.body);
+      const reorderedStacks = reorderStacksSchema.parse(req.body);
       await storage.reorderStacks(reorderedStacks);
       console.log("Sending success response for reorderStacks:", { message: "Ordem das stacks atualizada com sucesso" });
       res.json({ message: "Ordem das stacks atualizada com sucesso" });

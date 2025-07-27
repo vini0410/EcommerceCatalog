@@ -96,10 +96,6 @@ export function FeaturedStacks() {
               <p className="text-muted-foreground mb-6">
                 As coleções de produtos serão exibidas aqui quando disponíveis.
               </p>
-              <Button onClick={handleViewAllProducts} className="btn-primary">
-                Ver Todos os Produtos
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
             </div>
           ) : (
             <div className="space-y-16">

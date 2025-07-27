@@ -275,7 +275,7 @@ export function AdminDashboard() {
   });
 
   const reorderStacksMutation = useMutation({
-    mutationFn: (data: { stacks: { id: string; ordem: number }[] }) =>
+    mutationFn: (data: { id: string; ordem: number }[]) =>
       api.reorderStacks(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stacks"] });
@@ -291,10 +291,10 @@ export function AdminDashboard() {
   });
 
   const handleReorderStacksSave = (reorderedStacks: Stack[]) => {
-    const data = { stacks: reorderedStacks.map((stack) => ({
+    const data = reorderedStacks.map((stack) => ({
       id: stack.id,
       ordem: stack.ordem,
-    }))};
+    }));
     reorderStacksMutation.mutate(data);
   };
 
@@ -618,19 +618,24 @@ export function AdminDashboard() {
             {/* Stacks Tab */}
             <TabsContent value="stacks" className="space-y-8">
               <div className="flex justify-between items-center mb-4">
-                <Button
-                  onClick={() => setShowStackModal(true)}
-                  className="btn-primary"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nova Stack
-                </Button>
-                <Button
-                  onClick={() => setShowReorderModal(true)}
-                  variant="outline"
-                >
-                  Reordenar Stacks
-                </Button>
+                <h2 className="text-2xl font-bold text-foreground">
+                  Gerenciar Stacks
+                </h2>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => setShowReorderModal(true)}
+                    variant="outline"
+                  >
+                    Reordenar Stacks
+                  </Button>
+                  <Button
+                    onClick={() => setShowStackModal(true)}
+                    className="btn-primary"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova Stack
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-6">

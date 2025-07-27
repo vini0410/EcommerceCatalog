@@ -136,8 +136,8 @@ export function SearchProducts() {
                 Nenhum produto encontrado
               </h3>
               <p className="text-muted-foreground">
-                {debouncedSearch
-                  ? `Não encontramos produtos para "${debouncedSearch}". Tente buscar com outros termos.`
+                {searchQuery
+                  ? `Não encontramos produtos para "${searchQuery}". Tente buscar com outros termos.`
                   : "Tente buscar por um produto específico usando a barra de pesquisa acima."}
               </p>
             </div>

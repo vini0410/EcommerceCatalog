@@ -1,6 +1,6 @@
 import { produtos, stacks, stackProdutos, configuracaoSite, sessaoAdmin, type Produto, type Stack, type StackProduto, type InsertProduto, type InsertStack, type InsertStackProduto, type InsertConfiguracaoSite, type InsertSessaoAdmin } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, and, ilike, or } from "drizzle-orm";
+import { eq, desc, asc, and, ilike, or, max } from "drizzle-orm";
 
 export interface IStorage {
   // Produtos
@@ -171,10 +171,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createStack(stack: InsertStack, produtosData?: { productId: string, ordem: number }[]): Promise<Stack> {
+    const maxOrderResult = await db.select({ maxOrder: max(stacks.ordem) }).from(stacks);
+    const nextOrder = (maxOrderResult[0].maxOrder || 0) + 1;
+
     const [novaStack] = await db
       .insert(stacks)
       .values({
         ...stack,
+        ordem: nextOrder,
         atualizadoEm: new Date()
       })
       .returning();

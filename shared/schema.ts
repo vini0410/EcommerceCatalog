@@ -116,11 +116,9 @@ export type InsertConfiguracaoSite = z.infer<typeof insertConfiguracaoSiteSchema
 export type SessaoAdmin = typeof sessaoAdmin.$inferSelect;
 export type InsertSessaoAdmin = z.infer<typeof insertSessaoAdminSchema>;
 
-export const reorderStacksSchema = z.object({
-  stacks: z.array(z.object({
-    id: z.string(),
-    ordem: z.number(),
-  })),
-});
+export const reorderStacksSchema = z.array(z.object({
+  id: z.string(),
+  ordem: z.number(),
+}));
 
 export type ReorderStack = z.infer<typeof reorderStacksSchema>;
