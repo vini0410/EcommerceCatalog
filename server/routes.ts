@@ -5,10 +5,12 @@ import { insertProdutoSchema, insertStackSchema, insertStackProdutoSchema } from
 import passport from "passport";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  console.log("registerRoutes function called.");
   // Middleware para validação de admin
   const requireAdmin = (req: any, res: any, next: any) => {
     console.log("isAuthenticated:", req.isAuthenticated());
     if (req.isAuthenticated()) {
+      console.log("isAuthenticated: true, calling next()");
       return next();
     }
     res.status(401).json({ message: 'Acesso não autorizado' });

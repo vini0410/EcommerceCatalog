@@ -30,7 +30,7 @@ import {
   Package,
   Layers,
   Save,
-  X
+  X,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -64,6 +64,7 @@ export function AdminDashboard() {
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [showStackModal, setShowStackModal] = useState(false);
+  const [showReorderModal, setShowReorderModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Produto | null>(null);
   const [editingStack, setEditingStack] = useState<Stack | null>(null);
   const [activeTab, setActiveTab] = useState("products");
@@ -82,13 +83,15 @@ export function AdminDashboard() {
     produtos: [],
   });
   const [productSearchTerm, setProductSearchTerm] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>(
+    [],
+  );
 
   // Check authentication on mount
   useEffect(() => {
-    const token = localStorage.getItem('admin-token');
+    const token = localStorage.getItem("admin-token");
     if (!token) {
-      setLocation('/');
+      setLocation("/");
       return;
     }
   }, [setLocation]);
@@ -104,11 +107,13 @@ export function AdminDashboard() {
   // Populate selected products when editing an existing stack
   useEffect(() => {
     if (editingStack && editingStack.produtos) {
-      const productsForStack = editingStack.produtos.map((sp: any) => ({
-        id: sp.produto.id,
-        titulo: sp.produto.titulo,
-        ordem: sp.ordem,
-      })).sort((a: any, b: any) => a.ordem - b.ordem);
+      const productsForStack = editingStack.produtos
+        .map((sp: any) => ({
+          id: sp.produto.id,
+          titulo: sp.produto.titulo,
+          ordem: sp.ordem,
+        }))
+        .sort((a: any, b: any) => a.ordem - b.ordem);
       setSelectedProducts(productsForStack);
     } else {
       setSelectedProducts([]);
@@ -132,7 +137,7 @@ export function AdminDashboard() {
     mutationFn: () => api.logoutAdmin(),
     onSuccess: () => {
       toast({ title: "Logout realizado com sucesso!" });
-      setLocation('/');
+      setLocation("/");
     },
   });
 
@@ -154,7 +159,8 @@ export function AdminDashboard() {
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateProduto(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      api.updateProduto(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/produtos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stacks"] }); // Invalidate stacks to reflect product changes
@@ -220,7 +226,8 @@ export function AdminDashboard() {
   });
 
   const updateStackMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateStack(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      api.updateStack(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stacks"] });
       setShowStackModal(false);
@@ -315,9 +322,11 @@ export function AdminDashboard() {
     const data = {
       titulo: productForm.titulo,
       valorBruto: parseFloat(productForm.valorBruto),
-      valorDesconto: productForm.valorDesconto ? parseFloat(productForm.valorDesconto) : undefined,
+      valorDesconto: productForm.valorDesconto
+        ? parseFloat(productForm.valorDesconto)
+        : undefined,
       descricao: productForm.descricao,
-      fotos: productForm.fotos.filter(foto => foto.trim() !== ""),
+      fotos: productForm.fotos.filter((foto) => foto.trim() !== ""),
     };
 
     if (editingProduct) {
@@ -345,44 +354,51 @@ export function AdminDashboard() {
   };
 
   const addFotoField = () => {
-    setProductForm(prev => ({ ...prev, fotos: [...prev.fotos, ""] }));
+    setProductForm((prev) => ({ ...prev, fotos: [...prev.fotos, ""] }));
   };
 
   const updateFotoField = (index: number, value: string) => {
-    setProductForm(prev => ({
+    setProductForm((prev) => ({
       ...prev,
-      fotos: prev.fotos.map((foto, i) => i === index ? value : foto)
+      fotos: prev.fotos.map((foto, i) => (i === index ? value : foto)),
     }));
   };
 
   const removeFotoField = (index: number) => {
-    setProductForm(prev => ({
+    setProductForm((prev) => ({
       ...prev,
-      fotos: prev.fotos.filter((_, i) => i !== index)
+      fotos: prev.fotos.filter((_, i) => i !== index),
     }));
   };
 
   const addProductToStack = (product: Produto) => {
-    if (!selectedProducts.some(p => p.id === product.id)) {
-      setSelectedProducts(prev => [...prev, { id: product.id, titulo: product.titulo, ordem: prev.length + 1 }]);
+    if (!selectedProducts.some((p) => p.id === product.id)) {
+      setSelectedProducts((prev) => [
+        ...prev,
+        { id: product.id, titulo: product.titulo, ordem: prev.length + 1 },
+      ]);
     }
   };
 
   const removeProductFromStack = (productId: string) => {
-    setSelectedProducts(prev => prev.filter(p => p.id !== productId).map((p, index) => ({ ...p, ordem: index + 1 })));
+    setSelectedProducts((prev) =>
+      prev
+        .filter((p) => p.id !== productId)
+        .map((p, index) => ({ ...p, ordem: index + 1 })),
+    );
   };
 
-  const moveProductInStack = (productId: string, direction: 'up' | 'down') => {
-    setSelectedProducts(prev => {
-      const index = prev.findIndex(p => p.id === productId);
+  const moveProductInStack = (productId: string, direction: "up" | "down") => {
+    setSelectedProducts((prev) => {
+      const index = prev.findIndex((p) => p.id === productId);
       if (index === -1) return prev;
 
       const newProducts = [...prev];
       const [movedProduct] = newProducts.splice(index, 1);
 
-      if (direction === 'up' && index > 0) {
+      if (direction === "up" && index > 0) {
         newProducts.splice(index - 1, 0, movedProduct);
-      } else if (direction === 'down' && index < newProducts.length) {
+      } else if (direction === "down" && index < newProducts.length) {
         newProducts.splice(index + 1, 0, movedProduct);
       } else {
         return prev; // No change if already at the top/bottom
@@ -392,10 +408,14 @@ export function AdminDashboard() {
     });
   };
 
-  const filteredAvailableProducts = produtos?.produtos.filter(product =>
-    product.titulo.toLowerCase().includes(productSearchTerm.toLowerCase()) &&
-    !selectedProducts.some(p => p.id === product.id)
-  ) || [];
+  const filteredAvailableProducts =
+    produtos?.produtos.filter(
+      (product) =>
+        product.titulo
+          .toLowerCase()
+          .includes(productSearchTerm.toLowerCase()) &&
+        !selectedProducts.some((p) => p.id === product.id),
+    ) || [];
 
   return (
     <div className="min-h-screen pt-16">
@@ -411,7 +431,6 @@ export function AdminDashboard() {
                 Gerencie produtos e stacks do seu catálogo
               </p>
             </div>
-            
           </div>
         </div>
       </section>
@@ -419,7 +438,12 @@ export function AdminDashboard() {
       {/* Content */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <Tabs defaultValue="products" value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <Tabs
+            defaultValue="products"
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="space-y-8"
+          >
             <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
               <TabsTrigger value="products" className="flex items-center gap-2">
                 <Package className="h-4 w-4" />
@@ -477,7 +501,10 @@ export function AdminDashboard() {
                               <TableCell>
                                 <div className="flex items-center space-x-3">
                                   <img
-                                    src={produto.fotos[0] || "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=48&h=48&fit=crop"}
+                                    src={
+                                      produto.fotos[0] ||
+                                      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=48&h=48&fit=crop"
+                                    }
                                     alt=""
                                     className="w-12 h-12 rounded-lg object-cover"
                                   />
@@ -493,7 +520,9 @@ export function AdminDashboard() {
                               </TableCell>
                               <TableCell>
                                 <div className="font-medium text-foreground">
-                                  R$ {produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)}
+                                  R${" "}
+                                  {produto.valorDesconto?.toFixed(2) ||
+                                    produto.valorBruto.toFixed(2)}
                                 </div>
                                 {produto.valorDesconto && (
                                   <div className="text-sm text-muted-foreground line-through">
@@ -505,8 +534,16 @@ export function AdminDashboard() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => toggleProductStatusMutation.mutate(produto.id)}
-                                  className={produto.ativo ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800" : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"}
+                                  onClick={() =>
+                                    toggleProductStatusMutation.mutate(
+                                      produto.id,
+                                    )
+                                  }
+                                  className={
+                                    produto.ativo
+                                      ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
+                                      : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
+                                  }
                                 >
                                   {produto.ativo ? "Ativo" : "Inativo"}
                                 </Button>
@@ -523,14 +560,20 @@ export function AdminDashboard() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => toggleProductStatusMutation.mutate(produto.id)}
+                                    onClick={() =>
+                                      toggleProductStatusMutation.mutate(
+                                        produto.id,
+                                      )
+                                    }
                                   >
                                     {produto.ativo ? "Desativar" : "Ativar"}
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => deleteProductMutation.mutate(produto.id)}
+                                    onClick={() =>
+                                      deleteProductMutation.mutate(produto.id)
+                                    }
                                     className="text-destructive hover:text-destructive"
                                   >
                                     <Trash2 className="h-4 w-4" />
@@ -549,16 +592,19 @@ export function AdminDashboard() {
 
             {/* Stacks Tab */}
             <TabsContent value="stacks" className="space-y-8">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-foreground">
-                  Gerenciar Stacks
-                </h2>
+              <div className="flex justify-between items-center mb-4">
                 <Button
                   onClick={() => setShowStackModal(true)}
                   className="btn-primary"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Nova Stack
+                </Button>
+                <Button
+                  onClick={() => setShowReorderModal(true)}
+                  variant="outline"
+                >
+                  Reordenar Stacks
                 </Button>
               </div>
 
@@ -572,7 +618,9 @@ export function AdminDashboard() {
                 ) : !stacks?.length ? (
                   <Card>
                     <CardContent className="py-8">
-                      <div className="text-center">Nenhuma stack cadastrada</div>
+                      <div className="text-center">
+                        Nenhuma stack cadastrada
+                      </div>
                     </CardContent>
                   </Card>
                 ) : (
@@ -585,22 +633,31 @@ export function AdminDashboard() {
                               {stack.titulo}
                             </CardTitle>
                             <p className="text-sm text-muted-foreground">
-                              Ordem: {stack.ordem} • {stack.produtos.length} produtos
+                              Ordem: {stack.ordem} • {stack.produtos.length}{" "}
+                              produtos
                             </p>
                           </div>
                           <div className="flex space-x-2">
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setLocation(`/buscar?stackId=${stack.id}`)}
+                              onClick={() =>
+                                setLocation(`/buscar?stackId=${stack.id}`)
+                              }
                             >
                               Ver Produtos
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => toggleStackStatusMutation.mutate(stack.id)}
-                              className={stack.ativo ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800" : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"}
+                              onClick={() =>
+                                toggleStackStatusMutation.mutate(stack.id)
+                              }
+                              className={
+                                stack.ativo
+                                  ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
+                                  : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
+                              }
                             >
                               {stack.ativo ? "Ativa" : "Inativa"}
                             </Button>
@@ -614,7 +671,9 @@ export function AdminDashboard() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => deleteStackMutation.mutate(stack.id)}
+                              onClick={() =>
+                                deleteStackMutation.mutate(stack.id)
+                              }
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -631,7 +690,10 @@ export function AdminDashboard() {
                                 className="border border-border rounded-lg p-3 flex items-center space-x-3"
                               >
                                 <img
-                                  src={stackProduto.produto.fotos[0] || "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=32&h=32&fit=crop"}
+                                  src={
+                                    stackProduto.produto.fotos[0] ||
+                                    "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=32&h=32&fit=crop"
+                                  }
                                   alt=""
                                   className="w-8 h-8 rounded object-cover"
                                 />
@@ -640,7 +702,13 @@ export function AdminDashboard() {
                                     {stackProduto.produto.titulo}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    R$ {stackProduto.produto.valorDesconto?.toFixed(2) || stackProduto.produto.valorBruto.toFixed(2)}
+                                    R${" "}
+                                    {stackProduto.produto.valorDesconto?.toFixed(
+                                      2,
+                                    ) ||
+                                      stackProduto.produto.valorBruto.toFixed(
+                                        2,
+                                      )}
                                   </p>
                                 </div>
                               </div>
@@ -676,7 +744,12 @@ export function AdminDashboard() {
               <Input
                 id="titulo"
                 value={productForm.titulo}
-                onChange={(e) => setProductForm(prev => ({ ...prev, titulo: e.target.value }))}
+                onChange={(e) =>
+                  setProductForm((prev) => ({
+                    ...prev,
+                    titulo: e.target.value,
+                  }))
+                }
                 placeholder="Nome do produto"
               />
             </div>
@@ -689,37 +762,52 @@ export function AdminDashboard() {
                   type="number"
                   step="0.01"
                   value={productForm.valorBruto}
-                  onChange={(e) => setProductForm(prev => ({ ...prev, valorBruto: e.target.value }))}
+                  onChange={(e) =>
+                    setProductForm((prev) => ({
+                      ...prev,
+                      valorBruto: e.target.value,
+                    }))
+                  }
                   placeholder="0.00"
                 />
               </div>
 
               <div className="space-y-2">
-              <Label htmlFor="valorDesconto">Valor com Desconto (R$)</Label>
-              <Input
-                id="valorDesconto"
-                type="number"
-                step="0.01"
-                value={productForm.valorDesconto}
-                onChange={(e) => setProductForm(prev => ({ ...prev, valorDesconto: e.target.value }))}
-                placeholder="0.00 (opcional)"
+                <Label htmlFor="valorDesconto">Valor com Desconto (R$)</Label>
+                <Input
+                  id="valorDesconto"
+                  type="number"
+                  step="0.01"
+                  value={productForm.valorDesconto}
+                  onChange={(e) =>
+                    setProductForm((prev) => ({
+                      ...prev,
+                      valorDesconto: e.target.value,
+                    }))
+                  }
+                  placeholder="0.00 (opcional)"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="descricao">Descrição</Label>
+              <Textarea
+                id="descricao"
+                value={productForm.descricao}
+                onChange={(e) =>
+                  setProductForm((prev) => ({
+                    ...prev,
+                    descricao: e.target.value,
+                  }))
+                }
+                placeholder="Descrição detalhada do produto..."
+                rows={4}
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="descricao">Descrição</Label>
-            <Textarea
-              id="descricao"
-              value={productForm.descricao}
-              onChange={(e) => setProductForm(prev => ({ ...prev, descricao: e.target.value }))}
-              placeholder="Descrição detalhada do produto..."
-              rows={4}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Fotos (URLs)</Label>
+            <div className="space-y-2">
+              <Label>Fotos (URLs)</Label>
               {productForm.fotos.map((foto, index) => (
                 <div key={index} className="flex space-x-2">
                   <Input
@@ -764,7 +852,10 @@ export function AdminDashboard() {
             </Button>
             <Button
               onClick={handleProductSubmit}
-              disabled={createProductMutation.isPending || updateProductMutation.isPending}
+              disabled={
+                createProductMutation.isPending ||
+                updateProductMutation.isPending
+              }
               className="btn-primary"
             >
               <Save className="h-4 w-4 mr-2" />
@@ -789,20 +880,10 @@ export function AdminDashboard() {
               <Input
                 id="stack-titulo"
                 value={stackForm.titulo}
-                onChange={(e) => setStackForm(prev => ({ ...prev, titulo: e.target.value }))}
+                onChange={(e) =>
+                  setStackForm((prev) => ({ ...prev, titulo: e.target.value }))
+                }
                 placeholder="Nome da stack"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="stack-ordem">Ordem de Exibição</Label>
-              <Input
-                id="stack-ordem"
-                type="number"
-                min="1"
-                value={stackForm.ordem}
-                onChange={(e) => setStackForm(prev => ({ ...prev, ordem: e.target.value }))}
-                placeholder="1"
               />
             </div>
 
@@ -816,12 +897,19 @@ export function AdminDashboard() {
               />
               <div className="max-h-48 overflow-y-auto border rounded-md p-2">
                 {produtosLoading ? (
-                  <p className="text-sm text-muted-foreground">Carregando produtos...</p>
+                  <p className="text-sm text-muted-foreground">
+                    Carregando produtos...
+                  </p>
                 ) : filteredAvailableProducts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum produto encontrado ou todos já adicionados.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum produto encontrado ou todos já adicionados.
+                  </p>
                 ) : (
                   filteredAvailableProducts.map((product: Produto) => (
-                    <div key={product.id} className="flex items-center justify-between py-1">
+                    <div
+                      key={product.id}
+                      className="flex items-center justify-between py-1"
+                    >
                       <span className="text-sm">{product.titulo}</span>
                       <Button
                         variant="outline"
@@ -840,16 +928,23 @@ export function AdminDashboard() {
               <Label>Produtos na Stack ({selectedProducts.length})</Label>
               <div className="max-h-48 overflow-y-auto border rounded-md p-2">
                 {selectedProducts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum produto selecionado para esta stack.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum produto selecionado para esta stack.
+                  </p>
                 ) : (
                   selectedProducts.map((product, index) => (
-                    <div key={product.id} className="flex items-center justify-between py-1 border-b last:border-b-0">
-                      <span className="text-sm">{index + 1}. {product.titulo}</span>
+                    <div
+                      key={product.id}
+                      className="flex items-center justify-between py-1 border-b last:border-b-0"
+                    >
+                      <span className="text-sm">
+                        {index + 1}. {product.titulo}
+                      </span>
                       <div className="flex space-x-1">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => moveProductInStack(product.id, 'up')}
+                          onClick={() => moveProductInStack(product.id, "up")}
                           disabled={index === 0}
                         >
                           ⬆️
@@ -857,7 +952,7 @@ export function AdminDashboard() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => moveProductInStack(product.id, 'down')}
+                          onClick={() => moveProductInStack(product.id, "down")}
                           disabled={index === selectedProducts.length - 1}
                         >
                           ⬇️
@@ -890,7 +985,9 @@ export function AdminDashboard() {
             </Button>
             <Button
               onClick={handleStackSubmit}
-              disabled={createStackMutation.isPending || updateStackMutation.isPending}
+              disabled={
+                createStackMutation.isPending || updateStackMutation.isPending
+              }
               className="btn-primary"
             >
               <Save className="h-4 w-4 mr-2" />
