@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProdutoSchema, insertStackSchema, insertStackProdutoSchema } from "@shared/schema";
+import { insertProdutoSchema, insertStackSchema, insertStackProdutoSchema, reorderStacksSchema } from "@shared/schema";
 import passport from "passport";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -199,6 +199,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stackProduto);
     } catch (error) {
       res.status(500).json({ message: "Erro ao atualizar ordem do produto" });
+    }
+  });
+
+  app.patch("/api/admin/stacks/reorder", requireAdmin, async (req, res) => {
+    console.log("Reordering stacks");
+    console.log("Request body for reorderStacks:", req.body);
+    try {
+      const { stacks: reorderedStacks } = reorderStacksSchema.parse(req.body);
+      await storage.reorderStacks(reorderedStacks);
+      console.log("Sending success response for reorderStacks:", { message: "Ordem das stacks atualizada com sucesso" });
+      res.json({ message: "Ordem das stacks atualizada com sucesso" });
+    } catch (error: any) {
+      console.error("Error reordering stacks:", error);
+      res.status(400).json({ message: error.message || "Erro ao reordenar stacks" });
     }
   });
 

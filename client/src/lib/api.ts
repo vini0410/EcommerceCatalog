@@ -170,5 +170,21 @@ export const api = {
       throw new Error(errorData.message || 'Erro ao alternar status da stack');
     }
     return res.json();
+  },
+
+  async reorderStacks(data: { stacks: { id: string; ordem: number }[] }) {
+    console.log("reorder data: ", data);
+    const res = await fetch('/api/admin/stacks/reorder', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Erro ao reordenar stacks');
+    }
+    return res.json();
   }
 };

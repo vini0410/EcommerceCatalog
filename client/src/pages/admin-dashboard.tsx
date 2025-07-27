@@ -36,6 +36,7 @@ import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { type Produto, type Stack } from "@shared/schema";
+import { ReorderStacksModal } from "@/components/reorder-stacks-modal";
 
 interface ProductFormData {
   titulo: string;
@@ -272,6 +273,30 @@ export function AdminDashboard() {
       });
     },
   });
+
+  const reorderStacksMutation = useMutation({
+    mutationFn: (data: { stacks: { id: string; ordem: number }[] }) =>
+      api.reorderStacks(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stacks"] });
+      toast({ title: "Ordem das stacks atualizada com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Erro ao reordenar stacks",
+        description: error.message,
+      });
+    },
+  });
+
+  const handleReorderStacksSave = (reorderedStacks: Stack[]) => {
+    const data = { stacks: reorderedStacks.map((stack) => ({
+      id: stack.id,
+      ordem: stack.ordem,
+    }))};
+    reorderStacksMutation.mutate(data);
+  };
 
   // Form handlers
   const resetProductForm = () => {
@@ -615,7 +640,7 @@ export function AdminDashboard() {
                       <div className="text-center">Carregando stacks...</div>
                     </CardContent>
                   </Card>
-                ) : !stacks?.length ? (
+                ) : !stacks?.length || !stacks ? (
                   <Card>
                     <CardContent className="py-8">
                       <div className="text-center">
@@ -996,6 +1021,14 @@ export function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reorder Stacks Modal */}
+      <ReorderStacksModal
+        open={showReorderModal}
+        onOpenChange={setShowReorderModal}
+        stacks={stacks || []}
+        onSave={handleReorderStacksSave}
+      />
     </div>
   );
 }

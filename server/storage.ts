@@ -18,6 +18,7 @@ export interface IStorage {
   updateStack(id: string, stack: Partial<InsertStack>, produtosData?: { productId: string, ordem: number }[]): Promise<Stack>;
   toggleStackStatus(id: string): Promise<Stack>;
   deleteStack(id: string): Promise<void>;
+  reorderStacks(stacksToReorder: { id: string; ordem: number }[]): Promise<void>;
 
   // Stack Produtos
   addProdutoToStack(stackProduto: InsertStackProduto): Promise<StackProduto>;
@@ -240,6 +241,14 @@ export class DatabaseStorage implements IStorage {
       .returning();
     console.log(`Stack ${stackAtualizada.id} - Ativo depois: ${stackAtualizada.ativo}`);
     return stackAtualizada;
+  }
+
+  async reorderStacks(stacksToReorder: { id: string; ordem: number }[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      for (const { id, ordem } of stacksToReorder) {
+        await tx.update(stacks).set({ ordem, atualizadoEm: new Date() }).where(eq(stacks.id, id));
+      }
+    });
   }
 
   async addProdutoToStack(stackProduto: InsertStackProduto): Promise<StackProduto> {
