@@ -22,7 +22,7 @@ export function ProductCard({ produto, onViewDetails }: ProductCardProps) {
         <img
           src={produto.fotos[0] || "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop"}
           alt={produto.titulo}
-          className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+          className="w-full h-48 sm:h-64 object-cover group-hover:scale-110 transition-transform duration-500"
         />
         
         {hasDiscount && (
@@ -48,7 +48,7 @@ export function ProductCard({ produto, onViewDetails }: ProductCardProps) {
       </div>
 
       <CardContent className="p-6">
-        <h3 className="font-semibold text-card-foreground mb-2 line-clamp-2">
+        <h3 className="font-semibold text-card-foreground mb-2 line-clamp-2 text-base sm:text-lg">
           {produto.titulo}
         </h3>
         

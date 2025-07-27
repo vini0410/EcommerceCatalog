@@ -48,12 +48,13 @@ export const checkAuthStatus = async () => {
 
 export const api = {
   // Produtos públicos
-  async getProdutos(search?: string, page?: number, limit?: number, stackId?: string) {
+  async getProdutos(search?: string, page?: number, limit?: number, stackId?: string, includeInactive?: boolean) {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     if (page) params.append('page', page.toString());
     if (limit) params.append('limit', limit.toString());
     if (stackId) params.append('stackId', stackId);
+    if (includeInactive) params.append('includeInactive', 'true');
     
     const url = `/api/produtos${params.toString() ? `?${params.toString()}` : ''}`;
     const res = await fetch(url);
@@ -68,8 +69,11 @@ export const api = {
   },
 
   // Stacks públicas
-  async getStacks() {
-    const res = await fetch('/api/stacks');
+  async getStacks(includeInactive?: boolean) {
+    const params = new URLSearchParams();
+    if (includeInactive) params.append('includeInactive', 'true');
+    const url = `/api/stacks${params.toString() ? `?${params.toString()}` : ''}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Erro ao buscar stacks');
     return res.json();
   },
@@ -113,6 +117,17 @@ export const api = {
     return res.json();
   },
 
+  async toggleProdutoStatus(id: string) {
+    const res = await fetch(`/api/admin/produtos/${id}/toggle-status`, {
+      method: 'PUT',
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Erro ao alternar status do produto');
+    }
+    return res.json();
+  },
+
   // Admin - Stacks
   async createStack(stack: any) {
     const res = await fetch('/api/admin/stacks', {
@@ -143,6 +158,17 @@ export const api = {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Erro ao remover stack');
+    return res.json();
+  },
+
+  async toggleStackStatus(id: string) {
+    const res = await fetch(`/api/admin/stacks/${id}/toggle-status`, {
+      method: 'PUT',
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Erro ao alternar status da stack');
+    }
     return res.json();
   }
 };

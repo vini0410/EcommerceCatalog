@@ -66,6 +66,7 @@ export function AdminDashboard() {
   const [showStackModal, setShowStackModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Produto | null>(null);
   const [editingStack, setEditingStack] = useState<Stack | null>(null);
+  const [activeTab, setActiveTab] = useState("products");
 
   const [productForm, setProductForm] = useState<ProductFormData>({
     titulo: "",
@@ -117,12 +118,13 @@ export function AdminDashboard() {
   // Fetch data
   const { data: produtos, isLoading: produtosLoading } = useQuery({
     queryKey: ["/api/produtos"],
-    queryFn: () => api.getProdutos("", 1, 100),
+    queryFn: () => api.getProdutos("", 1, 100, undefined, true),
   });
 
   const { data: stacks, isLoading: stacksLoading } = useQuery({
-    queryKey: ["/api/stacks"],
-    queryFn: () => api.getStacks(),
+    queryKey: ["/api/stacks", activeTab],
+    queryFn: () => api.getStacks(true),
+    enabled: activeTab === "stacks",
   });
 
   // Mutations
@@ -185,6 +187,21 @@ export function AdminDashboard() {
     },
   });
 
+  const toggleProductStatusMutation = useMutation({
+    mutationFn: (id: string) => api.toggleProdutoStatus(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/produtos"] });
+      toast({ title: "Status do produto atualizado com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar status do produto",
+        description: error.message,
+      });
+    },
+  });
+
   const createStackMutation = useMutation({
     mutationFn: (data: any) => api.createStack(data),
     onSuccess: () => {
@@ -229,6 +246,21 @@ export function AdminDashboard() {
       toast({
         variant: "destructive",
         title: "Erro ao remover stack",
+        description: error.message,
+      });
+    },
+  });
+
+  const toggleStackStatusMutation = useMutation({
+    mutationFn: (id: string) => api.toggleStackStatus(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stacks"] });
+      toast({ title: "Status da stack atualizado com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar status da stack",
         description: error.message,
       });
     },
@@ -387,7 +419,7 @@ export function AdminDashboard() {
       {/* Content */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <Tabs defaultValue="products" className="space-y-8">
+          <Tabs defaultValue="products" value={activeTab} onValueChange={setActiveTab} className="space-y-8">
             <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
               <TabsTrigger value="products" className="flex items-center gap-2">
                 <Package className="h-4 w-4" />
@@ -421,8 +453,7 @@ export function AdminDashboard() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Produto</TableHead>
-                          <TableHead>Preços</TableHead>
-                          <TableHead>Desconto</TableHead>
+                          <TableHead>Preço</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
@@ -461,33 +492,24 @@ export function AdminDashboard() {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <div className="text-sm">
-                                  <div className="font-medium text-foreground">
-                                    R$ {produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)}
-                                  </div>
-                                  {produto.valorDesconto && (
-                                    <div className="text-muted-foreground line-through">
-                                      R$ {produto.valorBruto.toFixed(2)}
-                                    </div>
-                                  )}
+                                <div className="font-medium text-foreground">
+                                  R$ {produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)}
                                 </div>
-                              </TableCell>
-                              <TableCell>
-                                {produto.descontoCalculado ? (
-                                  <Badge className="btn-coral">
-                                    {produto.descontoCalculado}%
-                                  </Badge>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
+                                {produto.valorDesconto && (
+                                  <div className="text-sm text-muted-foreground line-through">
+                                    R$ {produto.valorBruto.toFixed(2)}
+                                  </div>
                                 )}
                               </TableCell>
                               <TableCell>
-                                <Badge
-                                  variant={produto.ativo ? "default" : "secondary"}
-                                  className={produto.ativo ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : ""}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => toggleProductStatusMutation.mutate(produto.id)}
+                                  className={produto.ativo ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800" : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"}
                                 >
                                   {produto.ativo ? "Ativo" : "Inativo"}
-                                </Badge>
+                                </Button>
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end space-x-2">
@@ -497,6 +519,13 @@ export function AdminDashboard() {
                                     onClick={() => handleEditProduct(produto)}
                                   >
                                     <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleProductStatusMutation.mutate(produto.id)}
+                                  >
+                                    {produto.ativo ? "Desativar" : "Ativar"}
                                   </Button>
                                   <Button
                                     variant="ghost"
@@ -566,6 +595,14 @@ export function AdminDashboard() {
                               onClick={() => setLocation(`/buscar?stackId=${stack.id}`)}
                             >
                               Ver Produtos
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => toggleStackStatusMutation.mutate(stack.id)}
+                              className={stack.ativo ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800" : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"}
+                            >
+                              {stack.ativo ? "Ativa" : "Inativa"}
                             </Button>
                             <Button
                               variant="ghost"

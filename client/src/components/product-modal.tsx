@@ -29,10 +29,10 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex justify-between items-center">
-            <DialogTitle className="text-2xl font-bold text-foreground">
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground">
               {produto.titulo}
             </DialogTitle>
           </div>
@@ -90,7 +90,7 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
               </div>
 
               <div className="flex items-center justify-center md:justify-start space-x-3 mb-4">
-                <span className="text-3xl font-bold text-foreground">
+                <span className="text-2xl sm:text-3xl font-bold text-foreground">
                   R$ {produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)}
                 </span>
                 {hasDiscount && (

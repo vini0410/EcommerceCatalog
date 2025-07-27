@@ -17,12 +17,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Produtos públicos
   app.get("/api/produtos", async (req, res) => {
     try {
-      const { search, page = 1, limit = 20, stackId } = req.query;
+      const { search, page = 1, limit = 20, stackId, includeInactive } = req.query;
       const resultado = await storage.getProdutos(
         search as string,
         parseInt(page as string),
         parseInt(limit as string),
-        stackId as string
+        stackId as string,
+        includeInactive === 'true' // Convert string to boolean
       );
       res.json(resultado);
     } catch (error) {
@@ -45,7 +46,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stacks públicas
   app.get("/api/stacks", async (req, res) => {
     try {
-      const stacks = await storage.getStacks();
+      const { includeInactive } = req.query;
+      const stacks = await storage.getStacks(includeInactive === 'true');
       res.json(stacks);
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar stacks" });
@@ -108,6 +110,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/admin/produtos/:id/toggle-status", requireAdmin, async (req, res) => {
+    try {
+      const produto = await storage.toggleProdutoStatus(req.params.id);
+      res.json(produto);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Erro ao alternar status do produto" });
+    }
+  });
+
   app.delete("/api/admin/produtos/:id", requireAdmin, async (req, res) => {
     try {
       await storage.deleteProduto(req.params.id);
@@ -144,6 +155,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Stack removida com sucesso" });
     } catch (error) {
       res.status(500).json({ message: "Erro ao remover stack" });
+    }
+  });
+
+  app.put("/api/admin/stacks/:id/toggle-status", requireAdmin, async (req, res) => {
+    try {
+      const stack = await storage.toggleStackStatus(req.params.id);
+      res.json(stack);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Erro ao alternar status da stack" });
     }
   });
 

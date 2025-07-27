@@ -4,17 +4,19 @@ import { eq, desc, asc, and, ilike, or } from "drizzle-orm";
 
 export interface IStorage {
   // Produtos
-  getProdutos(search?: string, page?: number, limit?: number, stackId?: string): Promise<{ produtos: Produto[], total: number }>;
+  getProdutos(search?: string, page?: number, limit?: number, stackId?: string, includeInactive?: boolean): Promise<{ produtos: Produto[], total: number }>;
   getProdutoById(id: string): Promise<Produto | undefined>;
   createProduto(produto: InsertProduto): Promise<Produto>;
   updateProduto(id: string, produto: Partial<InsertProduto>): Promise<Produto>;
+  toggleProdutoStatus(id: string): Promise<Produto>;
   deleteProduto(id: string): Promise<void>;
 
   // Stacks
-  getStacks(): Promise<(Stack & { produtos: (StackProduto & { produto: Produto })[] })[]>;
+  getStacks(includeInactive?: boolean): Promise<(Stack & { produtos: (StackProduto & { produto: Produto })[] })[]>;
   getStackById(id: string): Promise<Stack | undefined>;
   createStack(stack: InsertStack, produtos?: { productId: string, ordem: number }[]): Promise<Stack>;
   updateStack(id: string, stack: Partial<InsertStack>, produtosData?: { productId: string, ordem: number }[]): Promise<Stack>;
+  toggleStackStatus(id: string): Promise<Stack>;
   deleteStack(id: string): Promise<void>;
 
   // Stack Produtos
@@ -33,13 +35,16 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getProdutos(search?: string, page: number = 1, limit: number = 20, stackId?: string): Promise<{ produtos: Produto[], total: number }> {
+  async getProdutos(search?: string, page: number = 1, limit: number = 20, stackId?: string, includeInactive: boolean = false): Promise<{ produtos: Produto[], total: number }> {
     const offset = (page - 1) * limit;
     
     let query = db.select().from(produtos);
     let countQuery = db.select({ count: produtos.id }).from(produtos);
 
-    let conditions = [eq(produtos.ativo, true)];
+    let conditions = [];
+    if (!includeInactive) {
+      conditions.push(eq(produtos.ativo, true));
+    }
 
     if (stackId) {
       query = query.innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId));
@@ -55,11 +60,11 @@ export class DatabaseStorage implements IStorage {
     }
 
     const [produtosList, totalResult] = await Promise.all([
-      query.where(and(...conditions))
+      query.where(conditions.length > 0 ? and(...conditions) : undefined)
         .limit(limit)
         .offset(offset)
         .orderBy(desc(produtos.criadoEm)),
-      countQuery.where(and(...conditions))
+      countQuery.where(conditions.length > 0 ? and(...conditions) : undefined)
     ]);
 
     return {
@@ -106,12 +111,34 @@ export class DatabaseStorage implements IStorage {
     return produtoAtualizado;
   }
 
-  async deleteProduto(id: string): Promise<void> {
-    await db.update(produtos).set({ ativo: false }).where(eq(produtos.id, id));
+  async toggleProdutoStatus(id: string): Promise<Produto> {
+    const [produto] = await db.select().from(produtos).where(eq(produtos.id, id));
+    if (!produto) {
+      throw new Error("Produto não encontrado");
+    }
+    const [produtoAtualizado] = await db
+      .update(produtos)
+      .set({
+        ativo: !produto.ativo,
+        atualizadoEm: new Date()
+      })
+      .where(eq(produtos.id, id))
+      .returning();
+    return produtoAtualizado;
   }
 
-  async getStacks(): Promise<(Stack & { produtos: (StackProduto & { produto: Produto })[] })[]> {
-    const stacksList = await db.select().from(stacks).where(eq(stacks.ativo, true)).orderBy(asc(stacks.ordem));
+  async deleteProduto(id: string): Promise<void> {
+    await db.delete(produtos).where(eq(produtos.id, id));
+  }
+
+  async getStacks(includeInactive: boolean = false): Promise<(Stack & { produtos: (StackProduto & { produto: Produto })[] })[]> {
+    console.log(`getStacks called with includeInactive: ${includeInactive}`);
+    let query = db.select().from(stacks);
+    if (!includeInactive) {
+      query = query.where(eq(stacks.ativo, true));
+    }
+    const stacksList = await query.orderBy(asc(stacks.ordem));
+    console.log(`Stacks retrieved: ${stacksList.length} stacks`);
     
     const stacksWithProdutos = await Promise.all(
       stacksList.map(async (stack) => {
@@ -119,10 +146,9 @@ export class DatabaseStorage implements IStorage {
           .select()
           .from(stackProdutos)
           .innerJoin(produtos, eq(stackProdutos.produtoId, produtos.id))
-          .where(and(
-            eq(stackProdutos.stackId, stack.id),
-            eq(produtos.ativo, true)
-          ))
+          .where(
+            eq(stackProdutos.stackId, stack.id)
+          )
           .orderBy(asc(stackProdutos.ordem));
 
         return {
@@ -195,7 +221,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteStack(id: string): Promise<void> {
-    await db.update(stacks).set({ ativo: false }).where(eq(stacks.id, id));
+    await db.delete(stacks).where(eq(stacks.id, id));
+  }
+
+  async toggleStackStatus(id: string): Promise<Stack> {
+    const [stack] = await db.select().from(stacks).where(eq(stacks.id, id));
+    if (!stack) {
+      throw new Error("Stack não encontrada");
+    }
+    console.log(`Stack ${stack.id} - Ativo antes: ${stack.ativo}`);
+    const [stackAtualizada] = await db
+      .update(stacks)
+      .set({
+        ativo: !stack.ativo,
+        atualizadoEm: new Date()
+      })
+      .where(eq(stacks.id, id))
+      .returning();
+    console.log(`Stack ${stackAtualizada.id} - Ativo depois: ${stackAtualizada.ativo}`);
+    return stackAtualizada;
   }
 
   async addProdutoToStack(stackProduto: InsertStackProduto): Promise<StackProduto> {
