@@ -37,13 +37,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { type Produto, type Stack } from "@shared/schema";
 import { ReorderStacksModal } from "@/components/reorder-stacks-modal";
+import { supabase } from "@/lib/supabase";
 
 interface ProductFormData {
   titulo: string;
   valorBruto: string;
   valorDesconto: string;
   descricao: string;
-  fotos: string[];
+  fotos: (string | File)[]; // Aceita URLs (string) ou novos arquivos (File)
 }
 
 interface SelectedProduct {
@@ -75,7 +76,7 @@ export function AdminDashboard() {
     valorBruto: "",
     valorDesconto: "",
     descricao: "",
-    fotos: [""],
+    fotos: [],
   });
 
   const [stackForm, setStackForm] = useState<StackFormData>({
@@ -305,7 +306,7 @@ export function AdminDashboard() {
       valorBruto: "",
       valorDesconto: "",
       descricao: "",
-      fotos: [""],
+      fotos: [],
     });
     setEditingProduct(null);
   };
@@ -328,7 +329,7 @@ export function AdminDashboard() {
       valorBruto: produto.valorBruto.toString(),
       valorDesconto: produto.valorDesconto?.toString() || "",
       descricao: produto.descricao || "",
-      fotos: produto.fotos.length > 0 ? produto.fotos : [""],
+      fotos: produto.fotos || [],
     });
     setShowProductModal(true);
   };
@@ -343,7 +344,34 @@ export function AdminDashboard() {
     setShowStackModal(true);
   };
 
-  const handleProductSubmit = () => {
+  const handleProductSubmit = async () => {
+    const uploadedImageUrls: string[] = [];
+
+    for (const foto of productForm.fotos) {
+      if (typeof foto === 'string') {
+        // Se já é uma URL, apenas adiciona
+        uploadedImageUrls.push(foto);
+      } else {
+        // Se é um File, faz o upload para o Supabase Storage
+        const fileName = `${Date.now()}-${foto.name}`;
+        const { data, error } = await supabase.storage
+          .from('imagens-produtos')
+          .upload(fileName, foto, { cacheControl: '3600', upsert: false });
+
+        if (error) {
+          toast({
+            variant: "destructive",
+            title: "Erro ao fazer upload da imagem",
+            description: error.message,
+          });
+          return; // Interrompe a submissão se houver erro no upload
+        }
+        // Constrói a URL pública da imagem
+        const publicUrl = supabase.storage.from('imagens-produtos').getPublicUrl(data.path).data.publicUrl;
+        uploadedImageUrls.push(publicUrl);
+      }
+    }
+
     const data = {
       titulo: productForm.titulo,
       valorBruto: parseFloat(productForm.valorBruto),
@@ -351,7 +379,7 @@ export function AdminDashboard() {
         ? parseFloat(productForm.valorDesconto)
         : undefined,
       descricao: productForm.descricao,
-      fotos: productForm.fotos.filter((foto) => foto.trim() !== ""),
+      fotos: uploadedImageUrls, // Envia as URLs finais para a API
     };
 
     if (editingProduct) {
@@ -378,21 +406,20 @@ export function AdminDashboard() {
     }
   };
 
-  const addFotoField = () => {
-    setProductForm((prev) => ({ ...prev, fotos: [...prev.fotos, ""] }));
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setProductForm((prev) => ({
+        ...prev,
+        fotos: [...prev.fotos, ...newFiles],
+      }));
+    }
   };
 
-  const updateFotoField = (index: number, value: string) => {
+  const removeFoto = (indexToRemove: number) => {
     setProductForm((prev) => ({
       ...prev,
-      fotos: prev.fotos.map((foto, i) => (i === index ? value : foto)),
-    }));
-  };
-
-  const removeFotoField = (index: number) => {
-    setProductForm((prev) => ({
-      ...prev,
-      fotos: prev.fotos.filter((_, i) => i !== index),
+      fotos: prev.fotos.filter((_, index) => index !== indexToRemove),
     }));
   };
 
@@ -837,36 +864,34 @@ export function AdminDashboard() {
             </div>
 
             <div className="space-y-2">
-              <Label>Fotos (URLs)</Label>
-              {productForm.fotos.map((foto, index) => (
-                <div key={index} className="flex space-x-2">
-                  <Input
-                    value={foto}
-                    onChange={(e) => updateFotoField(index, e.target.value)}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                    className="flex-1"
-                  />
-                  {productForm.fotos.length > 1 && (
+              <Label htmlFor="fotos">Fotos</Label>
+              <Input
+                id="fotos"
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {productForm.fotos.map((foto, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={typeof foto === 'string' ? foto : URL.createObjectURL(foto)}
+                      alt={`Imagem ${index + 1}`}
+                      className="w-full h-24 object-cover rounded-md"
+                    />
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="destructive"
                       size="icon"
-                      onClick={() => removeFotoField(index)}
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => removeFoto(index)}
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                  )}
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addFotoField}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Foto
-              </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

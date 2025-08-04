@@ -48,9 +48,9 @@ export function Header() {
             {/* Logo */}
             <Link to="/" className="flex items-center">
               <div className="w-10 h-10 btn-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">C</span>
+                <span className="text-primary-foreground font-bold text-lg">E</span>
               </div>
-              <span className="ml-3 text-xl font-bold text-foreground">Catálogo Feminino</span>
+              <span className="ml-3 text-xl font-bold text-foreground">Elegancia Cintilante ✨</span>
             </Link>
 
             {/* Desktop Navigation */}

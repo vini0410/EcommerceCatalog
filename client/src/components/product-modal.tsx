@@ -23,9 +23,7 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
 
   const hasDiscount = produto.valorDesconto && produto.valorDesconto < produto.valorBruto;
   const discountPercent = produto.descontoCalculado;
-  const images = produto.fotos.length > 0 ? produto.fotos : [
-    "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&h=600&fit=crop"
-  ];
+  const images = produto.fotos.length > 0 ? produto.fotos : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

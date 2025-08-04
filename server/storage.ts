@@ -1,6 +1,18 @@
 import { produtos, stacks, stackProdutos, configuracaoSite, sessaoAdmin, type Produto, type Stack, type StackProduto, type InsertProduto, type InsertStack, type InsertStackProduto, type InsertConfiguracaoSite, type InsertSessaoAdmin } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, ilike, or, max } from "drizzle-orm";
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  throw new Error('Supabase URL and Service Role Key must be defined in your .env file');
+}
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: { persistSession: false },
+});
 
 export interface IStorage {
   // Produtos
@@ -129,6 +141,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProduto(id: string): Promise<void> {
+    // 1. Obter o produto para pegar as URLs das fotos
+    const produtoToDelete = await this.getProdutoById(id);
+    if (!produtoToDelete) {
+      throw new Error("Produto não encontrado");
+    }
+
+    // 2. Extrair os caminhos dos arquivos das URLs e deletar do Supabase Storage
+    if (produtoToDelete.fotos && produtoToDelete.fotos.length > 0) {
+      console.log("Produto a ser deletado possui fotos:", produtoToDelete.fotos);
+      const filePaths = produtoToDelete.fotos.map(url => {
+        // Extrai o caminho do arquivo da URL pública do Supabase
+        // Ex: https://<project_id>.supabase.co/storage/v1/object/public/imagens-produtos/caminho/do/arquivo.jpg
+        // Queremos: imagens-produtos/caminho/do/arquivo.jpg
+        const parts = url.split('/');
+        const bucketName = 'imagens-produtos'; // Nome do seu bucket
+        const bucketNameIndex = parts.indexOf(bucketName);
+        if (bucketNameIndex === -1) {
+          console.error("Nome do bucket não encontrado na URL da imagem:", url);
+          return ''; // Retorna vazio ou lança um erro, dependendo da sua estratégia
+        }
+        return parts.slice(bucketNameIndex + 1).join('/');
+      });
+      console.log("Caminhos dos arquivos para deletar:", filePaths);
+
+      const { error: deleteError } = await supabaseAdmin.storage
+        .from('imagens-produtos') // Nome do seu bucket
+        .remove(filePaths);
+
+      if (deleteError) {
+        console.error("Erro ao deletar imagens do Supabase Storage:", deleteError);
+        // Decida se você quer lançar um erro aqui ou apenas logar
+        // Por enquanto, vamos apenas logar e continuar com a exclusão do DB
+      } else {
+        console.log("Imagens deletadas do Supabase Storage com sucesso.");
+      }
+    } else {
+      console.log("Produto a ser deletado não possui fotos ou o array de fotos está vazio.");
+    }
+
+    // 3. Deletar o produto do banco de dados
     await db.delete(produtos).where(eq(produtos.id, id));
   }
 
