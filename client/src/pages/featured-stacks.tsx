@@ -8,12 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { type Produto } from "@shared/schema";
-import { useLocation } from "wouter";
+import { capitalize } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 export function FeaturedStacks() {
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   const { data: stacks, isLoading } = useQuery({
     queryKey: ["/api/stacks"],
@@ -26,7 +27,7 @@ export function FeaturedStacks() {
   };
 
   const handleViewAllProducts = () => {
-    setLocation("/buscar");
+    navigate("/produtos");
   };
 
   if (isLoading) {
@@ -103,7 +104,7 @@ export function FeaturedStacks() {
                 <div key={stack.id} className="animate-fade-in">
                   <div className="flex items-center justify-between mb-8">
                     <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-                      {stack.titulo}
+                      {capitalize(stack.titulo)}
                     </h2>
                     
                   </div>

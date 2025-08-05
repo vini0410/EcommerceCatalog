@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductCard } from "@/components/product-card";
@@ -9,46 +10,41 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
 import { type Produto } from "@shared/schema";
-import { useLocation } from "wouter";
 
 export function SearchProducts() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Derive state from URL search params
+  const searchQuery = searchParams.get("q") || "";
+  const stackId = searchParams.get("stackId") || undefined;
+  const currentPage = parseInt(searchParams.get("pagina") || "1");
+  const itemsPerPage = parseInt(searchParams.get("limite") || "20");
+
+  // Local state for debouncing search input
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+  
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [stackId, setStackId] = useState<string | undefined>(undefined);
-  const [, setLocation] = useLocation();
 
-  // Extract search and stackId from URL params on location change
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const qParam = params.get('q');
-    const stackIdParam = params.get('stackId');
-
-    setSearchQuery(qParam || "");
-    setStackId(stackIdParam || undefined);
-    setCurrentPage(1); // Reset page when search or stackId changes
-  }, [location.search]); // Depend on location.search to react to URL changes
-
-  // Debounce search query and update URL
+  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
-      const params = new URLSearchParams();
-      if (searchQuery) params.set('q', searchQuery);
-      if (stackId) params.set('stackId', stackId);
-      const newUrl = `/buscar${params.toString() ? `?${params.toString()}` : ''}`;
-      if (window.location.search !== params.toString()) { // Only update if different
-        setLocation(newUrl);
+      if (debouncedSearchQuery !== searchQuery) {
+        handleSearchChange(debouncedSearchQuery);
       }
     }, 500);
-
     return () => clearTimeout(timer);
-  }, [searchQuery, stackId, setLocation]);
+  }, [debouncedSearchQuery]);
 
-  const { data, isLoading } = useQuery({
+  // Update debounced search query when URL changes
+  useEffect(() => {
+    setDebouncedSearchQuery(searchQuery);
+  }, [searchQuery]);
+
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["/api/produtos", searchQuery, currentPage, itemsPerPage, stackId],
     queryFn: () => api.getProdutos(searchQuery, currentPage, itemsPerPage, stackId),
+    keepPreviousData: true, // Helps prevent UI jumps on pagination
   });
 
   const handleViewProduct = (produto: Produto) => {
@@ -56,18 +52,33 @@ export function SearchProducts() {
     setShowProductModal(true);
   };
 
+  const handleSearchChange = (value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value) {
+      newParams.set("q", value);
+    } else {
+      newParams.delete("q");
+    }
+    newParams.set("pagina", "1");
+    setSearchParams(newParams);
+  };
+
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("pagina", page.toString());
+    setSearchParams(newParams);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("limite", newItemsPerPage.toString());
+    newParams.set("pagina", "1"); // Reset to page 1
+    setSearchParams(newParams);
   };
 
   const totalPages = data ? Math.ceil(data.total / itemsPerPage) : 0;
-  const hasResults = data && data.produtos.length > 0;
+  const hasResults = !isLoading && data && data.produtos.length > 0;
   const showNoResults = !isLoading && data && data.produtos.length === 0;
 
   return (
@@ -89,8 +100,8 @@ export function SearchProducts() {
             <div className="relative">
               <Input
                 type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={debouncedSearchQuery}
+                onChange={(e) => setDebouncedSearchQuery(e.target.value)}
                 placeholder="Buscar por nome ou código do produto..."
                 className="w-full px-6 py-4 pl-12 text-base bg-card shadow-lg border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
               />
@@ -108,14 +119,9 @@ export function SearchProducts() {
           {isLoading ? (
             <>
               {/* Loading Skeleton */}
-              <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
-                <Skeleton className="h-6 w-48 mb-4 sm:mb-0" />
-                <div className="flex items-center space-x-4">
-                  <Skeleton className="h-6 w-32" />
-                  <Skeleton className="h-10 w-20" />
-                </div>
+              <div className="flex justify-center mb-8">
+                <Skeleton className="h-10 w-full max-w-lg" />
               </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {Array.from({ length: itemsPerPage }).map((_, i) => (
                   <Card key={i} className="overflow-hidden">
@@ -144,7 +150,7 @@ export function SearchProducts() {
           ) : hasResults ? (
             <>
               {/* Pagination Info and Controls */}
-              <div className="mb-8">
+              <div className="mb-8 flex justify-center">
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
@@ -156,7 +162,11 @@ export function SearchProducts() {
               </div>
 
               {/* Products Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+              <div
+                className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12 transition-opacity duration-300 ${
+                  isFetching ? "opacity-50" : "opacity-100"
+                }`}
+              >
                 {data.produtos.map((produto: Produto) => (
                   <ProductCard
                     key={produto.id}
@@ -176,6 +186,7 @@ export function SearchProducts() {
                     totalItems={data.total}
                     onPageChange={handlePageChange}
                     onItemsPerPageChange={handleItemsPerPageChange}
+                    showPerPageSelector={false}
                   />
                 </div>
               )}

@@ -76,7 +76,7 @@ export class DatabaseStorage implements IStorage {
       query.where(conditions.length > 0 ? and(...conditions) : undefined)
         .limit(limit)
         .offset(offset)
-        .orderBy(desc(produtos.criadoEm)),
+        .orderBy(asc(produtos.titulo)),
       countQuery.where(conditions.length > 0 ? and(...conditions) : undefined)
     ]);
 

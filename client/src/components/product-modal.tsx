@@ -1,14 +1,9 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { X, Heart, ShoppingCart } from "lucide-react";
+import { ImageIcon } from "lucide-react"; // Import ImageIcon
 import { type Produto } from "@shared/schema";
+import { capitalize } from "@/lib/utils";
 
 interface ProductModalProps {
   produto: Produto | null;
@@ -21,33 +16,37 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
 
   if (!produto) return null;
 
-  const hasDiscount = produto.valorDesconto && produto.valorDesconto < produto.valorBruto;
+  const hasDiscount =
+    produto.valorDesconto && produto.valorDesconto < produto.valorBruto;
   const discountPercent = produto.descontoCalculado;
-  const images = produto.fotos.length > 0 ? produto.fotos : [];
+  const hasImages = produto.fotos && produto.fotos.length > 0;
+  const images = hasImages ? produto.fotos : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex justify-between items-center">
-            <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground">
-              {produto.titulo}
-            </DialogTitle>
-          </div>
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground">
+            {capitalize(produto.titulo)}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col md:flex-row gap-8">
           {/* Product Images */}
           <div className="md:w-1/2">
-            <div className="mb-4">
-              <img
-                src={images[selectedImageIndex]}
-                alt={produto.titulo}
-                className="w-full rounded-xl shadow-lg"
-              />
+            <div className="aspect-square bg-secondary flex items-center justify-center rounded-xl shadow-lg mb-4">
+              {hasImages ? (
+                <img
+                  src={images[selectedImageIndex]}
+                  alt={produto.titulo}
+                  className="w-full h-full object-cover rounded-xl"
+                />
+              ) : (
+                <ImageIcon className="w-24 h-24 text-muted-foreground" />
+              )}
             </div>
 
-            {images.length > 1 && (
+            {hasImages && images.length > 1 && (
               <div className="flex space-x-2 overflow-x-auto">
                 {images.map((foto, index) => (
                   <button
@@ -72,9 +71,6 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
 
           {/* Product Info */}
           <div className="md:w-1/2 text-center md:text-left">
-            <DialogTitle className="text-2xl font-bold text-foreground mb-4">
-              {produto.titulo}
-            </DialogTitle>
             <div className="mb-6">
               <div className="flex items-center justify-center md:justify-start space-x-4 mb-4">
                 {hasDiscount && (
@@ -89,7 +85,9 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
 
               <div className="flex items-center justify-center md:justify-start space-x-3 mb-4">
                 <span className="text-2xl sm:text-3xl font-bold text-foreground">
-                  R$ {produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)}
+                  R${" "}
+                  {produto.valorDesconto?.toFixed(2) ||
+                    produto.valorBruto.toFixed(2)}
                 </span>
                 {hasDiscount && (
                   <span className="text-lg text-muted-foreground line-through">
@@ -98,8 +96,9 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
                 )}
               </div>
 
-              <p className="text-muted-foreground mb-6">
-                {produto.descricao || "Nenhuma descrição disponível para este produto."}
+              <p className="text-muted-foreground mb-6 whitespace-pre-wrap">
+                {capitalize(produto.descricao) ||
+                  "Nenhuma descrição disponível para este produto."}
               </p>
             </div>
           </div>

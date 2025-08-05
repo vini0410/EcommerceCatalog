@@ -31,10 +31,12 @@ import {
   Layers,
   Save,
   X,
+  ImageIcon,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { capitalize } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 import { type Produto, type Stack } from "@shared/schema";
 import { ReorderStacksModal } from "@/components/reorder-stacks-modal";
 import { supabase } from "@/lib/supabase";
@@ -60,7 +62,7 @@ interface StackFormData {
 }
 
 export function AdminDashboard() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -89,14 +91,7 @@ export function AdminDashboard() {
     [],
   );
 
-  // Check authentication on mount
-  useEffect(() => {
-    const token = localStorage.getItem("admin-token");
-    if (!token) {
-      setLocation("/");
-      return;
-    }
-  }, [setLocation]);
+  
 
   // Reset selected products when stack modal is closed or a new stack is being created
   useEffect(() => {
@@ -139,7 +134,7 @@ export function AdminDashboard() {
     mutationFn: () => api.logoutAdmin(),
     onSuccess: () => {
       toast({ title: "Logout realizado com sucesso!" });
-      setLocation("/");
+      navigate("/");
     },
   });
 
@@ -552,17 +547,20 @@ export function AdminDashboard() {
                             <TableRow key={produto.id}>
                               <TableCell>
                                 <div className="flex items-center space-x-3">
-                                  <img
-                                    src={
-                                      produto.fotos[0] ||
-                                      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=48&h=48&fit=crop"
-                                    }
-                                    alt=""
-                                    className="w-12 h-12 rounded-lg object-cover"
-                                  />
+                                  <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center">
+                                    {produto.fotos && produto.fotos.length > 0 ? (
+                                      <img
+                                        src={produto.fotos[0]}
+                                        alt=""
+                                        className="w-full h-full rounded-lg object-cover"
+                                      />
+                                    ) : (
+                                      <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                                    )}
+                                  </div>
                                   <div>
                                     <div className="font-medium text-foreground">
-                                      {produto.titulo}
+                                      {capitalize(produto.titulo)}
                                     </div>
                                     <div className="text-sm text-muted-foreground">
                                       #{produto.id.slice(-8).toUpperCase()}
@@ -609,17 +607,7 @@ export function AdminDashboard() {
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      toggleProductStatusMutation.mutate(
-                                        produto.id,
-                                      )
-                                    }
-                                  >
-                                    {produto.ativo ? "Desativar" : "Ativar"}
-                                  </Button>
+                                  
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -687,7 +675,7 @@ export function AdminDashboard() {
                         <div className="flex justify-between items-start">
                           <div>
                             <CardTitle className="text-xl font-semibold">
-                              {stack.titulo}
+                              {capitalize(stack.titulo)}
                             </CardTitle>
                             <p className="text-sm text-muted-foreground">
                               Ordem: {stack.ordem} • {stack.produtos.length}{" "}
@@ -699,7 +687,7 @@ export function AdminDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                setLocation(`/buscar?stackId=${stack.id}`)
+                                navigate(`/produtos?stackId=${stack.id}`)
                               }
                             >
                               Ver Produtos
@@ -746,14 +734,17 @@ export function AdminDashboard() {
                                 key={stackProduto.id}
                                 className="border border-border rounded-lg p-3 flex items-center space-x-3"
                               >
-                                <img
-                                  src={
-                                    stackProduto.produto.fotos[0] ||
-                                    "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=32&h=32&fit=crop"
-                                  }
-                                  alt=""
-                                  className="w-8 h-8 rounded object-cover"
-                                />
+                                <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center flex-shrink-0">
+                                  {stackProduto.produto.fotos && stackProduto.produto.fotos.length > 0 ? (
+                                    <img
+                                      src={stackProduto.produto.fotos[0]}
+                                      alt=""
+                                      className="w-full h-full rounded object-cover"
+                                    />
+                                  ) : (
+                                    <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                                  )}
+                                </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium text-foreground truncate">
                                     {stackProduto.produto.titulo}

@@ -12,7 +12,16 @@ import NotFound from "@/pages/not-found";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-xl">Carregando...</div>
+      </div>
+    );
+  }
+
   return isLoggedIn ? children : <Navigate to="/" replace />;
 }
 
@@ -27,7 +36,7 @@ function App() {
                 <Header />
                 <Routes>
                   <Route path="/" element={<FeaturedStacks />} />
-                  <Route path="/buscar" element={<SearchProducts />} />
+                  <Route path="/produtos" element={<SearchProducts />} />
                   <Route
                     path="/admin"
                     element={

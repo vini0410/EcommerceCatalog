@@ -17,7 +17,7 @@ export function Header() {
 
   const navigation = [
     { href: "/", label: "🌟 Destaques", id: "destaques" },
-    { href: "/buscar", label: "❤️ Nossos produtos", id: "busca" },
+    { href: "/produtos", label: "❤️ Nossos produtos", id: "busca" },
     ...(isLoggedIn ? [{ href: "/admin", label: "⚙️ Gestão", id: "gestao" }] : []),
   ];
 

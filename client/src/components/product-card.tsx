@@ -1,8 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye } from "lucide-react";
+import { Eye, ImageIcon } from "lucide-react"; // Import ImageIcon
 import { type Produto } from "@shared/schema";
+import { capitalize } from "@/lib/utils";
 
 interface ProductCardProps {
   produto: Produto;
@@ -10,21 +11,24 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ produto, onViewDetails }: ProductCardProps) {
-  const hasDiscount = produto.valorDesconto && produto.valorDesconto < produto.valorBruto;
+  const hasDiscount =
+    produto.valorDesconto && produto.valorDesconto < produto.valorBruto;
   const discountPercent = produto.descontoCalculado;
+  const hasImage = produto.fotos && produto.fotos.length > 0;
 
   return (
-    <Card 
-      className="product-card group"
-      onClick={() => onViewDetails(produto)}
-    >
-      <div className="relative overflow-hidden">
-        <img
-          src={produto.fotos[0] || "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop"}
-          alt={produto.titulo}
-          className="w-full h-48 sm:h-64 object-cover group-hover:scale-110 transition-transform duration-500"
-        />
-        
+    <Card className="product-card group" onClick={() => onViewDetails(produto)}>
+      <div className="relative overflow-hidden aspect-square bg-secondary flex items-center justify-center">
+        {hasImage ? (
+          <img
+            src={produto.fotos[0]}
+            alt={produto.titulo}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          />
+        ) : (
+          <ImageIcon className="w-16 h-16 text-muted-foreground" />
+        )}
+
         {hasDiscount && (
           <Badge className="absolute top-3 left-3 btn-coral text-white">
             -{discountPercent}%
@@ -49,12 +53,13 @@ export function ProductCard({ produto, onViewDetails }: ProductCardProps) {
 
       <CardContent className="p-6">
         <h3 className="font-semibold text-card-foreground mb-2 line-clamp-2 text-base sm:text-lg">
-          {produto.titulo}
+          {capitalize(produto.titulo)}
         </h3>
-        
+
         <div className="flex items-center space-x-2 mb-3">
           <span className="text-lg font-bold text-card-foreground">
-            R$ {produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)}
+            R${" "}
+            {produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)}
           </span>
           {hasDiscount && (
             <span className="text-sm text-muted-foreground line-through">
@@ -62,8 +67,6 @@ export function ProductCard({ produto, onViewDetails }: ProductCardProps) {
             </span>
           )}
         </div>
-
-        
       </CardContent>
     </Card>
   );
