@@ -1,5 +1,5 @@
 import { produtos, stacks, stackProdutos, configuracaoSite, sessaoAdmin, type Produto, type Stack, type StackProduto, type InsertProduto, type InsertStack, type InsertStackProduto, type InsertConfiguracaoSite, type InsertSessaoAdmin } from "../shared/schema.js";
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, desc, asc, and, ilike, or, max, count } from "drizzle-orm";
 import { createClient } from '@supabase/supabase-js';
 
