@@ -1,6 +1,6 @@
 import { produtos, stacks, stackProdutos, configuracaoSite, sessaoAdmin, type Produto, type Stack, type StackProduto, type InsertProduto, type InsertStack, type InsertStackProduto, type InsertConfiguracaoSite, type InsertSessaoAdmin } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, and, ilike, or, max } from "drizzle-orm";
+import { eq, desc, asc, and, ilike, or, max, count } from "drizzle-orm";
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -63,7 +63,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     let produtosList: Produto[] = [];
-    let totalResult: { count: number }[] = [];
+    let total = 0;
 
     if (stackId) {
       const stackConditions = [...baseConditions, eq(stackProdutos.stackId, stackId)];
@@ -88,13 +88,13 @@ export class DatabaseStorage implements IStorage {
           .limit(limit)
           .offset(offset)
           .orderBy(asc(produtos.titulo)),
-        db.select({ count: produtos.id })
+        db.select({ value: count() })
           .from(produtos)
           .innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId))
           .where(whereClause)
       ]);
       produtosList = joinedProdutosList;
-      totalResult = countResult as { count: number }[];
+      total = countResult[0]?.value || 0;
 
     } else {
       const whereClause = baseConditions.length > 0 ? and(...baseConditions) : undefined;
@@ -106,17 +106,17 @@ export class DatabaseStorage implements IStorage {
           .limit(limit)
           .offset(offset)
           .orderBy(asc(produtos.titulo)),
-        db.select({ count: produtos.id })
+        db.select({ value: count() })
           .from(produtos)
           .where(whereClause)
       ]);
       produtosList = directProdutosList;
-      totalResult = countResult as { count: number }[];
+      total = countResult[0]?.value || 0;
     }
 
     return {
       produtos: produtosList,
-      total: totalResult.length > 0 ? Number(totalResult.length) : 0
+      total: total
     };
   }
 
