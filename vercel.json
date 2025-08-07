@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "dist/public",
+      "src": "dist/public/**",
       "use": "@vercel/static"
     }
   ],
@@ -16,8 +16,12 @@
       "dest": "dist/index.js"
     },
     {
+      "src": "/assets/(.*)",
+      "dest": "dist/public/assets/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "dist/public/$1"
+      "dest": "dist/public/index.html"
     }
   ]
 }
