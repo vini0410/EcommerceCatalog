@@ -51,20 +51,10 @@ export class DatabaseStorage implements IStorage {
   async getProdutos(search?: string, page: number = 1, limit: number = 20, stackId?: string, includeInactive: boolean = false): Promise<{ produtos: Produto[], total: number }> {
     const offset = (page - 1) * limit;
     
-    let query = db.select().from(produtos);
-    let countQuery = db.select({ count: produtos.id }).from(produtos);
-
-    let conditions = [];
+    const conditions = [];
     if (!includeInactive) {
       conditions.push(eq(produtos.ativo, true));
     }
-
-    if (stackId) {
-      query = query.innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId));
-      countQuery = countQuery.innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId));
-      conditions.push(eq(stackProdutos.stackId, stackId));
-    }
-    
     if (search) {
       conditions.push(or(
         ilike(produtos.titulo, `%${search}%`),
@@ -72,16 +62,39 @@ export class DatabaseStorage implements IStorage {
       ));
     }
 
+    let query = db.select({
+      id: produtos.id,
+      titulo: produtos.titulo,
+      valorBruto: produtos.valorBruto,
+      valorDesconto: produtos.valorDesconto,
+      descontoCalculado: produtos.descontoCalculado,
+      descricao: produtos.descricao,
+      fotos: produtos.fotos,
+      ativo: produtos.ativo,
+      criadoEm: produtos.criadoEm,
+      atualizadoEm: produtos.atualizadoEm,
+    }).from(produtos);
+
+    let countQuery = db.select({ count: produtos.id }).from(produtos);
+
+    if (stackId) {
+      query = query.innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId));
+      countQuery = countQuery.innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId));
+      conditions.push(eq(stackProdutos.stackId, stackId));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
     const [produtosList, totalResult] = await Promise.all([
-      query.where(conditions.length > 0 ? and(...conditions) : undefined)
+      query.where(whereClause)
         .limit(limit)
         .offset(offset)
         .orderBy(asc(produtos.titulo)),
-      countQuery.where(conditions.length > 0 ? and(...conditions) : undefined)
+      countQuery.where(whereClause)
     ]);
 
     return {
-      produtos: produtosList.map(row => row.produtos || row), // Adjust for innerJoin result structure
+      produtos: produtosList,
       total: totalResult.length || 0
     };
   }
@@ -209,9 +222,9 @@ export class DatabaseStorage implements IStorage {
 
         return {
           ...stack,
-          produtos: stackProdutosList.map(({ stack_produtos, produtos: produto }) => ({
-            ...stack_produtos,
-            produto
+          produtos: stackProdutosList.map(item => ({
+            ...item.stack_produtos,
+            produto: item.produtos
           }))
         };
       })
