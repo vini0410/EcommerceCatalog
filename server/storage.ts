@@ -51,51 +51,72 @@ export class DatabaseStorage implements IStorage {
   async getProdutos(search?: string, page: number = 1, limit: number = 20, stackId?: string, includeInactive: boolean = false): Promise<{ produtos: Produto[], total: number }> {
     const offset = (page - 1) * limit;
     
-    const conditions = [];
+    const baseConditions = [];
     if (!includeInactive) {
-      conditions.push(eq(produtos.ativo, true));
+      baseConditions.push(eq(produtos.ativo, true));
     }
     if (search) {
-      conditions.push(or(
+      baseConditions.push(or(
         ilike(produtos.titulo, `%${search}%`),
         ilike(produtos.id, `%${search}%`)
       ));
     }
 
-    let query = db.select({
-      id: produtos.id,
-      titulo: produtos.titulo,
-      valorBruto: produtos.valorBruto,
-      valorDesconto: produtos.valorDesconto,
-      descontoCalculado: produtos.descontoCalculado,
-      descricao: produtos.descricao,
-      fotos: produtos.fotos,
-      ativo: produtos.ativo,
-      criadoEm: produtos.criadoEm,
-      atualizadoEm: produtos.atualizadoEm,
-    }).from(produtos);
-
-    let countQuery = db.select({ count: produtos.id }).from(produtos);
+    let produtosList: Produto[] = [];
+    let totalResult: { count: number }[] = [];
 
     if (stackId) {
-      query = query.innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId));
-      countQuery = countQuery.innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId));
-      conditions.push(eq(stackProdutos.stackId, stackId));
+      const stackConditions = [...baseConditions, eq(stackProdutos.stackId, stackId)];
+      const whereClause = and(...stackConditions);
+
+      const [joinedProdutosList, countResult] = await Promise.all([
+        db.select({
+            id: produtos.id,
+            titulo: produtos.titulo,
+            valorBruto: produtos.valorBruto,
+            valorDesconto: produtos.valorDesconto,
+            descontoCalculado: produtos.descontoCalculado,
+            descricao: produtos.descricao,
+            fotos: produtos.fotos,
+            ativo: produtos.ativo,
+            criadoEm: produtos.criadoEm,
+            atualizadoEm: produtos.atualizadoEm,
+          })
+          .from(produtos)
+          .innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId))
+          .where(whereClause)
+          .limit(limit)
+          .offset(offset)
+          .orderBy(asc(produtos.titulo)),
+        db.select({ count: produtos.id })
+          .from(produtos)
+          .innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId))
+          .where(whereClause)
+      ]);
+      produtosList = joinedProdutosList;
+      totalResult = countResult as { count: number }[];
+
+    } else {
+      const whereClause = baseConditions.length > 0 ? and(...baseConditions) : undefined;
+
+      const [directProdutosList, countResult] = await Promise.all([
+        db.select()
+          .from(produtos)
+          .where(whereClause)
+          .limit(limit)
+          .offset(offset)
+          .orderBy(asc(produtos.titulo)),
+        db.select({ count: produtos.id })
+          .from(produtos)
+          .where(whereClause)
+      ]);
+      produtosList = directProdutosList;
+      totalResult = countResult as { count: number }[];
     }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const [produtosList, totalResult] = await Promise.all([
-      query.where(whereClause)
-        .limit(limit)
-        .offset(offset)
-        .orderBy(asc(produtos.titulo)),
-      countQuery.where(whereClause)
-    ]);
 
     return {
       produtos: produtosList,
-      total: totalResult.length || 0
+      total: totalResult.length > 0 ? Number(totalResult.length) : 0
     };
   }
 
@@ -199,9 +220,10 @@ export class DatabaseStorage implements IStorage {
 
   async getStacks(includeInactive: boolean = false): Promise<(Stack & { produtos: (StackProduto & { produto: Produto })[] })[]> {
     console.log(`getStacks called with includeInactive: ${includeInactive}`);
-    let query = db.select().from(stacks);
+    
+    const query = db.select().from(stacks);
     if (!includeInactive) {
-      query = query.where(eq(stacks.ativo, true));
+      query.where(eq(stacks.ativo, true));
     }
     const stacksList = await query.orderBy(asc(stacks.ordem));
     console.log(`Stacks retrieved: ${stacksList.length} stacks`);
@@ -210,11 +232,14 @@ export class DatabaseStorage implements IStorage {
       stacksList.map(async (stack) => {
         const productConditions = [eq(stackProdutos.stackId, stack.id)];
         if (!includeInactive) {
-          productConditions.push(eq(produtos.ativo, true)); // Only include active products for public view
+          productConditions.push(eq(produtos.ativo, true));
         }
 
         const stackProdutosList = await db
-          .select()
+          .select({ 
+            stack_produtos: stackProdutos,
+            produtos: produtos
+          })
           .from(stackProdutos)
           .innerJoin(produtos, eq(stackProdutos.produtoId, produtos.id))
           .where(and(...productConditions))
