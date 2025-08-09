@@ -4,7 +4,7 @@
     {
       "src": "package.json",
       "use": "@vercel/static-build",
-      "config": { "buildCommand": "npm run build", "outputDir": "dist/public" }
+      "config": { "buildCommand": "npm run build", "outputDir": "dist" }
     },
     {
       "src": "dist/index.js",
@@ -18,7 +18,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/public/index.html"
     }
   ]
 }
