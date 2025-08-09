@@ -198,6 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stackProduto = await storage.updateStackProdutoOrdem(req.params.id, ordem);
       res.json(stackProduto);
     } catch (error) {
+      console.error("Error in PUT /api/admin/stack-produtos/:id/ordem:", error);
       res.status(500).json({ message: "Erro ao atualizar ordem do produto" });
     }
   });

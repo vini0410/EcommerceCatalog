@@ -174,7 +174,7 @@ export const api = {
 
   async reorderStacks(stacks: { id: string; ordem: number }[]) {
     console.log("reorder data: ", stacks);
-    const res = await fetch('/api/admin/stacks/reorder', {
+    const res = await fetch(`${API_BASE_URL}/api/admin/stacks/reorder`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
