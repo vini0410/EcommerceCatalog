@@ -220,40 +220,52 @@ export class DatabaseStorage implements IStorage {
 
   async getStacks(includeInactive: boolean = false): Promise<(Stack & { produtos: (StackProduto & { produto: Produto })[] })[]> {
     console.log(`getStacks called with includeInactive: ${includeInactive}`);
-    
-    const query = db.select().from(stacks);
-    if (!includeInactive) {
-      query.where(eq(stacks.ativo, true));
+
+    let stacksList: Stack[] = [];
+    try {
+      const query = db.select().from(stacks);
+      if (!includeInactive) {
+        query.where(eq(stacks.ativo, true));
+      }
+      stacksList = await query.orderBy(asc(stacks.ordem));
+      console.log(`Stacks retrieved: ${stacksList.length} stacks`);
+    } catch (error) {
+      console.error("Error fetching initial stacks list:", error);
+      throw error; // Re-throw to be caught by the route handler
     }
-    const stacksList = await query.orderBy(asc(stacks.ordem));
-    console.log(`Stacks retrieved: ${stacksList.length} stacks`);
-    
-    let stacksWithProdutos = await Promise.all(
-      stacksList.map(async (stack) => {
-        const productConditions = [eq(stackProdutos.stackId, stack.id)];
-        if (!includeInactive) {
-          productConditions.push(eq(produtos.ativo, true));
-        }
 
-        const stackProdutosList = await db
-          .select({ 
-            stack_produtos: stackProdutos,
-            produtos: produtos
-          })
-          .from(stackProdutos)
-          .innerJoin(produtos, eq(stackProdutos.produtoId, produtos.id))
-          .where(and(...productConditions))
-          .orderBy(asc(stackProdutos.ordem));
+    let stacksWithProdutos = [];
+    try {
+      stacksWithProdutos = await Promise.all(
+        stacksList.map(async (stack) => {
+          const productConditions = [eq(stackProdutos.stackId, stack.id)];
+          if (!includeInactive) {
+            productConditions.push(eq(produtos.ativo, true));
+          }
 
-        return {
-          ...stack,
-          produtos: stackProdutosList.map(item => ({
-            ...item.stack_produtos,
-            produto: item.produtos
-          }))
-        };
-      })
-    );
+          const stackProdutosList = await db
+            .select({
+              stack_produtos: stackProdutos,
+              produtos: produtos
+            })
+            .from(stackProdutos)
+            .innerJoin(produtos, eq(stackProdutos.produtoId, produtos.id))
+            .where(and(...productConditions))
+            .orderBy(asc(stackProdutos.ordem));
+
+          return {
+            ...stack,
+            produtos: stackProdutosList.map(item => ({
+              ...item.stack_produtos,
+              produto: item.produtos
+            }))
+          };
+        })
+      );
+    } catch (error) {
+      console.error("Error fetching products for stacks:", error);
+      throw error; // Re-throw to be caught by the route handler
+    }
 
     // Filter out stacks that have no active products for public view
     if (!includeInactive) {
