@@ -5,20 +5,12 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": { "buildCommand": "npm run build", "outputDir": "dist" }
-    },
-    {
-      "src": "dist/index.js",
-      "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "dist/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/public/index.html"
+      "source": "/(.*)",
+      "destination": "/dist/index.js"
     }
   ]
 }
