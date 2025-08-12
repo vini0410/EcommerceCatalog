@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ImageIcon } from "lucide-react"; // Import ImageIcon
+import { ImageIcon, MessageCircle, Phone } from "lucide-react"; // Import ImageIcon, MessageCircle, and Phone
 import { type Produto } from "@shared/schema";
 import { capitalize } from "@/lib/utils";
 
@@ -21,6 +21,22 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
   const discountPercent = produto.descontoCalculado;
   const hasImages = produto.fotos && produto.fotos.length > 0;
   const images = hasImages ? produto.fotos : [];
+
+  const storePhoneNumber = "5548996551074"; // Replace with your store's number
+  const defaultMessage = `Olá, tenho interesse no produto: *${produto.titulo}* \nValor: R$ ${produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)} \nCodigo do Produto: ${produto.id}`;
+  const encodedMessage = encodeURIComponent(defaultMessage);
+
+  const whatsappWebAppUrl = `https://web.whatsapp.com/send?phone=${storePhoneNumber}&text=${encodedMessage}`;
+  const whatsappAppUrl = `https://wa.me/${storePhoneNumber}?text=${encodedMessage}`;
+
+  const isMobileOrTablet = () => {
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth < 768; // Example breakpoint for small screens
+
+    return hasTouch || isSmallScreen;
+  };
+
+  const whatsappRedirectUrl = isMobileOrTablet() ? whatsappAppUrl : whatsappWebAppUrl;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,6 +116,17 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
             </div>
           </div>
         </div>
+
+        {/* WhatsApp Button */}
+        <a
+          href={whatsappRedirectUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-colors"
+          aria-label="Contact via WhatsApp"
+        >
+          <MessageCircle className="w-8 h-8" />
+        </a>
       </DialogContent>
     </Dialog>
   );
