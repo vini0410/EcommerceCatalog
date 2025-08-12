@@ -116,6 +116,14 @@ export function SearchProducts() {
       {/* Results Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
+          {stackId && (
+            <div className="text-center mb-12 bg-card border border-border p-4 rounded-2xl shadow-lg">
+              <h2 className="text-xl font-semibold text-foreground">Filtrando por uma stack específica</h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Para ver todos os produtos, navegue para a página de produtos sem o filtro de stack.
+              </p>
+            </div>
+          )}
           {isLoading ? (
             <>
               {/* Loading Skeleton */}
