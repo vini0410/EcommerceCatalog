@@ -9,7 +9,7 @@ import { FeaturedStacks } from "@/pages/featured-stacks";
 import { SearchProducts } from "@/pages/search-products";
 import { AdminDashboard } from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const { isLoggedIn, isLoading } = useAuth();
@@ -31,25 +31,23 @@ function App() {
       <ThemeProvider>
         <TooltipProvider>
           <Router>
-            <AuthProvider>
-              <div className="min-h-screen bg-background transition-colors duration-300">
-                <Header />
-                <Routes>
-                  <Route path="/" element={<FeaturedStacks />} />
-                  <Route path="/produtos" element={<SearchProducts />} />
-                  <Route
-                    path="/admin"
-                    element={
-                      <ProtectedRoute>
-                        <AdminDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </div>
-              <Toaster />
-            </AuthProvider>
+            <div className="min-h-screen bg-background transition-colors duration-300">
+              <Header />
+              <Routes>
+                <Route path="/" element={<FeaturedStacks />} />
+                <Route path="/produtos" element={<SearchProducts />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+            <Toaster />
           </Router>
         </TooltipProvider>
       </ThemeProvider>

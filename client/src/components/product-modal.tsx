@@ -72,16 +72,13 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
           {/* Product Info */}
           <div className="md:w-1/2 text-center md:text-left">
             <div className="mb-6">
-              <div className="flex items-center justify-center md:justify-start space-x-4 mb-4">
-                {hasDiscount && (
-                  <Badge className="btn-coral text-white">
-                    -{discountPercent}% OFF
-                  </Badge>
-                )}
-                <Badge variant="secondary" className="text-sm">
-                  COD: #{produto.id.slice(-8).toUpperCase()}
-                </Badge>
-              </div>
+              {hasDiscount && (
+                <div className="flex items-center justify-center md:justify-start space-x-4 mb-4">
+                    <Badge className="btn-coral text-white">
+                      -{discountPercent}% OFF
+                    </Badge>
+                </div>
+              )}
 
               <div className="flex items-center justify-center md:justify-start space-x-3 mb-4">
                 <span className="text-2xl sm:text-3xl font-bold text-foreground">

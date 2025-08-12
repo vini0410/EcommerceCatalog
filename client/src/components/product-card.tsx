@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, ImageIcon } from "lucide-react"; // Import ImageIcon
 import { type Produto } from "@shared/schema";
 import { capitalize } from "@/lib/utils";
+import { useLocale } from "../context/LocaleContext.tsx";
+import { formatCurrency } from "../lib/formatters.ts";
 
 interface ProductCardProps {
   produto: Produto;
@@ -11,10 +13,12 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ produto, onViewDetails }: ProductCardProps) {
+  const { locale, config } = useLocale();
   const hasDiscount =
     produto.valorDesconto && produto.valorDesconto < produto.valorBruto;
   const discountPercent = produto.descontoCalculado;
   const hasImage = produto.fotos && produto.fotos.length > 0;
+  const finalPrice = produto.valorDesconto ?? produto.valorBruto;
 
   return (
     <Card className="product-card group" onClick={() => onViewDetails(produto)}>
@@ -58,12 +62,11 @@ export function ProductCard({ produto, onViewDetails }: ProductCardProps) {
 
         <div className="flex items-center space-x-2 mb-3">
           <span className="text-lg font-bold text-card-foreground">
-            R${" "}
-            {produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)}
+            {formatCurrency(finalPrice, locale, config.currency)}
           </span>
           {hasDiscount && (
             <span className="text-sm text-muted-foreground line-through">
-              R$ {produto.valorBruto.toFixed(2)}
+              {formatCurrency(produto.valorBruto, locale, config.currency)}
             </span>
           )}
         </div>
