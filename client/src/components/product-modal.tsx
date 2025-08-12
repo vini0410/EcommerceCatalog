@@ -110,7 +110,7 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
               </div>
 
               <p className="text-muted-foreground mb-6 whitespace-pre-wrap">
-                {capitalize(produto.descricao) ||
+                {capitalize(produto.descricao!) ||
                   "Nenhuma descrição disponível para este produto."}
               </p>
             </div>

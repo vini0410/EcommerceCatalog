@@ -9,7 +9,7 @@ export function Footer() {
         <div className="w-full md:w-7/10 mb-4 md:mb-0 text-center md:text-left">
           <h3 className="text-lg font-bold mb-2">Informações de Contato da Loja</h3>
           <p>Telefone: (48) 9 9655-1074</p>
-          <p>Email: contato@lojaexemplo.com</p>
+          <p>Email: contato@lojaexemplo.com</p> {/* TODO change default email */}
           <p>Endereço: Rua Leonel Pereira, 1375, Florianópolis - SC</p>
           {/* Add more contact info as needed */}
         </div>
