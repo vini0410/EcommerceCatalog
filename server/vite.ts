@@ -2,8 +2,8 @@ import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
 import { type Server } from "http";
-
 import { nanoid } from "nanoid";
+import react from "@vitejs/plugin-react";
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -27,7 +27,14 @@ export async function setupVite(app: Express, server: Server) {
   };
 
   const vite = await createViteServer({
-    ...viteConfig,
+    root: path.resolve(import.meta.dirname, "..", "client"),
+    resolve: {
+      alias: {
+        '@': path.resolve(import.meta.dirname, '..', 'client', 'src'),
+        '@shared': path.resolve(import.meta.dirname, '..', 'shared'),
+      },
+    },
+    plugins: [react()],
     configFile: false,
     customLogger: {
       ...viteLogger,

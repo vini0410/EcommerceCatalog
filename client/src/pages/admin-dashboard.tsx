@@ -340,6 +340,24 @@ export function AdminDashboard() {
   };
 
   const handleProductSubmit = async () => {
+    const parseLocaleNumber = (str: string | undefined | null): number | undefined => {
+      if (!str) return undefined;
+      // Remove pontos de milhar, depois troca a vírgula decimal por ponto
+      const value = parseFloat(str.replace(/\./g, '').replace(',', '.'));
+      return isNaN(value) ? undefined : value;
+    };
+
+    const valorBrutoNum = parseLocaleNumber(productForm.valorBruto);
+
+    if (valorBrutoNum === undefined) {
+      toast({
+        variant: "destructive",
+        title: "Valor Bruto inválido",
+        description: "Por favor, insira um número válido para o valor bruto (ex: 19,99).",
+      });
+      return;
+    }
+
     const uploadedImageUrls: string[] = [];
 
     for (const foto of productForm.fotos) {
@@ -369,10 +387,8 @@ export function AdminDashboard() {
 
     const data = {
       titulo: productForm.titulo,
-      valorBruto: parseFloat(productForm.valorBruto),
-      valorDesconto: productForm.valorDesconto
-        ? parseFloat(productForm.valorDesconto)
-        : undefined,
+      valorBruto: valorBrutoNum,
+      valorDesconto: parseLocaleNumber(productForm.valorDesconto),
       descricao: productForm.descricao,
       fotos: uploadedImageUrls, // Envia as URLs finais para a API
     };
@@ -807,8 +823,8 @@ export function AdminDashboard() {
                 <Label htmlFor="valorBruto">Valor Bruto (R$)</Label>
                 <Input
                   id="valorBruto"
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={productForm.valorBruto}
                   onChange={(e) =>
                     setProductForm((prev) => ({
@@ -816,7 +832,7 @@ export function AdminDashboard() {
                       valorBruto: e.target.value,
                     }))
                   }
-                  placeholder="0.00"
+                  placeholder="0,00"
                 />
               </div>
 
@@ -824,8 +840,8 @@ export function AdminDashboard() {
                 <Label htmlFor="valorDesconto">Valor com Desconto (R$)</Label>
                 <Input
                   id="valorDesconto"
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={productForm.valorDesconto}
                   onChange={(e) =>
                     setProductForm((prev) => ({
@@ -833,7 +849,7 @@ export function AdminDashboard() {
                       valorDesconto: e.target.value,
                     }))
                   }
-                  placeholder="0.00 (opcional)"
+                  placeholder="0,00 (opcional)"
                 />
               </div>
             </div>

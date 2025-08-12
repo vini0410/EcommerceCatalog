@@ -3,9 +3,16 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sun, Moon, Settings, Menu, LogOut } from "lucide-react";
 import { AdminLoginModal } from "./admin-login-modal";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
+import { useLocale } from "@/context/LocaleContext";
 
 export function Header() {
   const location = useLocation();
@@ -14,6 +21,12 @@ export function Header() {
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isLoggedIn, logout, checkAuth } = useAuth();
+  const { locale, setLocale } = useLocale();
+
+  const localeDisplay = {
+    'pt-BR': { flag: "🇧🇷", label: "PT-BR" },
+    'en-US': { flag: "🇺🇸", label: "EN-US" },
+  };
 
   const navigation = [
     { href: "/", label: "🌟 Destaques", id: "destaques" },
@@ -71,7 +84,7 @@ export function Header() {
             </nav>
 
             {/* Controls */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
               {/* Theme Toggle */}
               <Button
                 variant="ghost"
@@ -86,6 +99,23 @@ export function Header() {
                   <Moon className="h-5 w-5" />
                 )}
               </Button>
+
+              {/* Locale Switcher Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-lg text-lg">
+                    {localeDisplay[locale].flag}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-0">
+                  <DropdownMenuItem onSelect={() => setLocale('pt-BR')}>
+                    <span className="mr-2">🇧🇷</span> PT-BR
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setLocale('en-US')}>
+                    <span className="mr-2">🇺🇸</span> EN-US
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Admin/Logout Button */}
               {isLoggedIn ? (
