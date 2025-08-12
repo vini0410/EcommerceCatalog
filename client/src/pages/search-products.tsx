@@ -41,10 +41,14 @@ export function SearchProducts() {
     setDebouncedSearchQuery(searchQuery);
   }, [searchQuery]);
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching } = useQuery<{
+    total: number;
+    produtos: Produto[];
+  }>({
     queryKey: ["/api/produtos", searchQuery, currentPage, itemsPerPage, stackId],
     queryFn: () => api.getProdutos(searchQuery, currentPage, itemsPerPage, stackId),
-    keepPreviousData: true, // Helps prevent UI jumps on pagination
+    placeholderData: (previousData) => previousData,
+    staleTime: Infinity,
   });
 
   const handleViewProduct = (produto: Produto) => {
