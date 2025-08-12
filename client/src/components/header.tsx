@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Import useEffect
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sun, Moon, Settings, Menu, LogOut } from "lucide-react";
+import { Sun, Moon, Settings, Menu, LogOut, Sparkles } from "lucide-react"; // Import Sparkles
 import { AdminLoginModal } from "./admin-login-modal";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
@@ -22,6 +22,19 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isLoggedIn, logout, checkAuth } = useAuth();
   const { locale, setLocale } = useLocale();
+
+  const [isSmallScreen, setIsSmallScreen] = useState(false); // New state for screen size
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth < 768); // Breakpoint at 768px (md in Tailwind)
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Call once on mount to set initial state
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const localeDisplay = {
     'pt-BR': { flag: "🇧🇷", label: "PT-BR" },
@@ -60,10 +73,13 @@ export function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center">
-              <div className="w-10 h-10 btn-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">E</span>
+              <div className="btn-primary rounded-full flex items-center justify-center px-2 py-1">
+                {isSmallScreen ? ( // Conditional rendering based on screen size
+                  <span className="text-primary-foreground font-bold text-lg">E.C <Sparkles className="inline-block w-4 h-4" /></span>
+                ) : (
+                  <span className="text-primary-foreground font-bold text-lg">Elegância Cintilante ✨</span>
+                )}
               </div>
-              <span className="ml-3 text-xl font-bold text-foreground">Elegancia Cintilante ✨</span>
             </Link>
 
             {/* Desktop Navigation */}
