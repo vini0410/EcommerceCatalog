@@ -134,7 +134,8 @@ export const api = {
         errorMessage = errorData.message || errorMessage;
       } catch (e) {
         const errorText = await res.text();
-        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;n      }
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
       throw new Error(`Erro ao criar produto: ${errorMessage}`); // Modified message
     }
     return res.json();
@@ -155,7 +156,8 @@ export const api = {
         errorMessage = errorData.message || errorMessage;
       } catch (e) {
         const errorText = await res.text();
-        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;n      }
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
       throw new Error(`Erro ao atualizar produto: ${errorMessage}`); // Modified message
     }
     return res.json();
@@ -172,7 +174,8 @@ export const api = {
         errorMessage = errorData.message || errorMessage;
       } catch (e) {
         const errorText = await res.text();
-        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;n      }
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
       throw new Error(`Erro ao remover produto: ${errorMessage}`); // Modified message
     }
     return res.json();
@@ -189,7 +192,8 @@ export const api = {
         errorMessage = errorData.message || errorMessage;
       } catch (e) {
         const errorText = await res.text();
-        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;n      }
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
       throw new Error(`Erro ao alternar status do produto: ${errorMessage}`); // Modified message
     }
     return res.json();
@@ -211,7 +215,8 @@ export const api = {
         errorMessage = errorData.message || errorMessage;
       } catch (e) {
         const errorText = await res.text();
-        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;n      }
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
       throw new Error(`Erro ao criar stack: ${errorMessage}`); // Modified message
     }
     return res.json();
@@ -232,7 +237,8 @@ export const api = {
         errorMessage = errorData.message || errorMessage;
       } catch (e) {
         const errorText = await res.text();
-        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;n      }
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
       throw new Error(`Erro ao atualizar stack: ${errorMessage}`); // Modified message
     }
     return res.json();
@@ -249,7 +255,8 @@ export const api = {
         errorMessage = errorData.message || errorMessage;
       } catch (e) {
         const errorText = await res.text();
-        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;n      }
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
       throw new Error(`Erro ao remover stack: ${errorMessage}`); // Modified message
     }
     return res.json();
@@ -266,7 +273,8 @@ export const api = {
         errorMessage = errorData.message || errorMessage;
       } catch (e) {
         const errorText = await res.text();
-        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;n      }
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
       throw new Error(`Erro ao alternar status da stack: ${errorMessage}`); // Modified message
     }
     return res.json();
@@ -288,7 +296,8 @@ export const api = {
         errorMessage = errorData.message || errorMessage;
       } catch (e) {
         const errorText = await res.text();
-        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;n      }
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
       throw new Error(`Erro ao reordenar stacks: ${errorMessage}`); // Modified message
     }
     return res.json();

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 import { FeaturedStacks } from "@/pages/featured-stacks";
 import { SearchProducts } from "@/pages/search-products";
 import { AdminDashboard } from "@/pages/admin-dashboard";
@@ -46,6 +47,7 @@ function App() {
                 />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <Footer />
             </div>
             <Toaster />
           </Router>

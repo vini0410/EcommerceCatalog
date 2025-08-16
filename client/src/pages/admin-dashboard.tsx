@@ -473,7 +473,7 @@ export function AdminDashboard() {
 
   const filteredAvailableProducts =
     produtos?.produtos.filter(
-      (product) =>
+      (product: { titulo: string; id: string; }) =>
         product.titulo
           .toLowerCase()
           .includes(productSearchTerm.toLowerCase()) &&
