@@ -9,8 +9,10 @@ export function Footer() {
         <div className="w-full md:w-7/10 mb-4 md:mb-0 text-center md:text-left">
           <h3 className="text-lg font-bold mb-2">Informações de Contato da Loja</h3>
           <p>Telefone: (48) 9 9655-1074</p>
-          <p>Email: contato@lojaexemplo.com</p> {/* TODO change default email */}
-          <p>Endereço: Rua Leonel Pereira, 1375, Florianópolis - SC</p>
+          <p>Instagram:
+            <a href="https://www.instagram.com/eleganciacintilante.01" target='_blank' rel="noopener noreferrer" className="text-blue-400 hover:underline"> @eleganciacintilante.01</a>
+          </p>
+          <p>Email: eleganciacintilante58@gmail.com</p>
           {/* Add more contact info as needed */}
         </div>
 
