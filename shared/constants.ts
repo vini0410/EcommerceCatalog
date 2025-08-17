@@ -1,0 +1,1 @@
+export const SUPABASE_BUCKET_PRODUTOS = 'imagens-produtos';
