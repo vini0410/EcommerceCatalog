@@ -1,8 +1,10 @@
+
+
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -37,7 +39,7 @@ import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { capitalize } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { type Produto, type Stack } from "@shared/schema";
+import { type Produto, type Stack, type StackProduto } from "@shared/schema";
 import { ReorderStacksModal } from "@/components/reorder-stacks-modal";
 import { supabase } from "@/lib/supabase";
 
@@ -65,12 +67,17 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [showStackModal, setShowStackModal] = useState(false);
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Produto | null>(null);
-  const [editingStack, setEditingStack] = useState<Stack | null>(null);
+  const [editingStack, setEditingStack] = useState<(
+    Stack &
+    { produtos: (StackProduto & { produto: Produto })[] }
+  ) | null>(null);
   const [activeTab, setActiveTab] = useState("products");
 
   const [productForm, setProductForm] = useState<ProductFormData>({
@@ -123,7 +130,10 @@ export function AdminDashboard() {
     queryFn: () => api.getProdutos("", 1, 100, undefined, true),
   });
 
-  const { data: stacks, isLoading: stacksLoading } = useQuery({
+  const { data: stacks, isLoading: stacksLoading } = useQuery<(
+    Stack &
+    { produtos: (StackProduto & { produto: Produto })[] }
+  )[]>({
     queryKey: ["/api/stacks", activeTab],
     queryFn: () => api.getStacks(true),
     enabled: activeTab === "stacks",
@@ -131,7 +141,7 @@ export function AdminDashboard() {
 
   // Mutations
   const logoutMutation = useMutation({
-    mutationFn: () => api.logoutAdmin(),
+    mutationFn: () => logout(),
     onSuccess: () => {
       toast({ title: "Logout realizado com sucesso!" });
       navigate("/");
@@ -286,7 +296,7 @@ export function AdminDashboard() {
     },
   });
 
-  const handleReorderStacksSave = (reorderedStacks: Stack[]) => {
+  const handleReorderStacksSave = (reorderedStacks: (Stack & { produtos: (StackProduto & { produto: Produto; })[]; })[]) => {
     const data = reorderedStacks.map((stack) => ({
       id: stack.id,
       ordem: stack.ordem,
@@ -329,7 +339,7 @@ export function AdminDashboard() {
     setShowProductModal(true);
   };
 
-  const handleEditStack = (stack: Stack) => {
+  const handleEditStack = (stack: (Stack & { produtos: (StackProduto & { produto: Produto; })[]; })) => {
     setEditingStack(stack);
     setStackForm({
       titulo: stack.titulo,
@@ -479,6 +489,8 @@ export function AdminDashboard() {
           .includes(productSearchTerm.toLowerCase()) &&
         !selectedProducts.some((p) => p.id === product.id),
     ) || [];
+
+  
 
   return (
     <div className="min-h-screen pt-16">

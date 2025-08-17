@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sun, Moon, Settings, Menu, LogOut, Sparkles } from "lucide-react"; // Import Sparkles
-import { AdminLoginModal } from "./admin-login-modal";
+
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 
@@ -18,7 +18,7 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const [showAdminModal, setShowAdminModal] = useState(false);
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isLoggedIn, logout, checkAuth } = useAuth();
   const { locale, setLocale } = useLocale();
@@ -44,7 +44,7 @@ export function Header() {
   const navigation = [
     { href: "/", label: "🌟 Destaques", id: "destaques" },
     { href: "/produtos", label: "❤️ Nossos produtos", id: "busca" },
-    ...(isLoggedIn ? [{ href: "/admin", label: "⚙️ Gestão", id: "gestao" }] : []),
+    ...(isLoggedIn ? [{ href: "/admin/dashboard", label: "⚙️ Gestão", id: "gestao" }] : []),
   ];
 
   const isActive = (href: string) => {
@@ -53,13 +53,7 @@ export function Header() {
     return false;
   };
 
-  const handleAdminClick = () => {
-    if (isLoggedIn) {
-      navigate("/admin");
-    } else {
-      setShowAdminModal(true);
-    }
-  };
+  
 
   const handleLogout = async () => {
     await logout();
@@ -134,21 +128,13 @@ export function Header() {
               </DropdownMenu>
 
               {/* Admin/Logout Button */}
-              {isLoggedIn ? (
+              {isLoggedIn && (
                 <Button
                   onClick={handleLogout}
                   className="btn-primary px-4 py-2 text-sm font-medium rounded-lg"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleAdminClick}
-                  className="btn-primary px-4 py-2 text-sm font-medium rounded-lg"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Admin
                 </Button>
               )}
 
@@ -183,15 +169,7 @@ export function Header() {
         </div>
       </header>
 
-      <AdminLoginModal 
-        open={showAdminModal} 
-        onOpenChange={setShowAdminModal} 
-        onLoginSuccess={async () => {
-          setShowAdminModal(false);
-          await checkAuth();
-          navigate("/admin");
-        }}
-      />
+      
     </>
   );
 }
