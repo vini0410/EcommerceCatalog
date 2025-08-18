@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/pagination";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -79,7 +80,8 @@ export function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 1;
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [showStackModal, setShowStackModal] = useState(false);
@@ -145,10 +147,15 @@ export function AdminDashboard() {
     }
   }, [editingStack]);
 
-  // Fetch data
   const { data: produtos, isLoading: produtosLoading } = useQuery({
-    queryKey: ["/api/produtos"],
-    queryFn: () => api.getProdutos("", 1, 100, undefined, true),
+    queryKey: ["/api/produtos", currentPage, itemsPerPage],
+    queryFn: () => api.getProdutos("", currentPage, itemsPerPage, undefined, true),
+  });
+
+  const { data: allProdutos, isLoading: allProdutosLoading } = useQuery({
+    queryKey: ["/api/produtos/all"],
+    queryFn: () => api.getProdutos("", 1, 9999, undefined, true), // Fetch all for the modal
+    enabled: showStackModal, // Only fetch when the stack modal is open
   });
 
   const { data: stacks, isLoading: stacksLoading } = useQuery<(
@@ -611,7 +618,7 @@ export function AdminDashboard() {
   };
 
   const filteredAvailableProducts =
-    produtos?.produtos.filter(
+    allProdutos?.produtos.filter(
       (product: { titulo: string; id: string; }) =>
         product.titulo
           .toLowerCase()
@@ -619,7 +626,12 @@ export function AdminDashboard() {
         !selectedProducts.some((p) => p.id === product.id),
     ) || [];
 
-  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const totalPages = produtos ? Math.ceil(produtos.total / itemsPerPage) : 0;
 
   return (
     <div className="min-h-screen pt-16">
@@ -677,6 +689,20 @@ export function AdminDashboard() {
                   Novo Produto
                 </Button>
               </div>
+
+              {totalPages > 1 && (
+                <div className="flex justify-center mb-4">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={produtos.total}
+                    onPageChange={handlePageChange}
+                    onItemsPerPageChange={() => {}}
+                    showPerPageSelector={false}
+                  />
+                </div>
+              )}
 
               <Card>
                 <CardContent className="p-0">
@@ -789,6 +815,20 @@ export function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+
+              {totalPages > 1 && (
+                <div className="flex justify-center">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={produtos.total}
+                    onPageChange={handlePageChange}
+                    onItemsPerPageChange={() => {}}
+                    showPerPageSelector={false}
+                  />
+                </div>
+              )}
             </TabsContent>
 
             {/* Stacks Tab */}            <TabsContent value="stacks" className="space-y-8">              <div className="flex justify-between items-center mb-4">                <h2 className="text-2xl font-bold text-foreground">                  Gerenciar Stacks                </h2>                <div className="flex space-x-2">                  <Button                    onClick={() => setShowReorderModal(true)}                    variant="outline"                  >                    Reordenar Stacks                  </Button>                  <Button                    onClick={() => setShowStackModal(true)}                    className="btn-primary"                  >                    <Plus className="h-4 w-4 mr-2" />                    Nova Stack                  </Button>                </div>              </div>              <div className="space-y-6">                {stacksLoading ? (                  <Card>                    <CardContent className="py-8">                      <div className="text-center">Carregando stacks...</div>                    </CardContent>                  </Card>                ) : !stacks?.length || !stacks ? (                  <Card>                    <CardContent className="py-8">                      <div className="text-center">                        Nenhuma stack cadastrada                      </div>                    </CardContent>                  </Card>                ) : (                  stacks.map((stack: any) => (                    <Card key={stack.id}>                      <CardHeader>                        <div className="flex justify-between items-start">                          <div>                            <CardTitle className="text-xl font-semibold">                              {capitalize(stack.titulo)}                            </CardTitle>                            <p className="text-sm text-muted-foreground">                              Ordem: {stack.ordem} • {stack.produtos.length}                              produtos                            </p>                          </div>                          <div className="flex space-x-2">                            <Button                              variant="outline"                              size="sm"                              onClick={() =>                                navigate(`/produtos?stackId=${stack.id}`)                              }                            >                              Ver Produtos                            </Button>                            <Button                              variant="outline"                              size="sm"                              onClick={() =>                                toggleStackStatusMutation.mutate(stack.id)                              }                              className={                                stack.ativo                                  ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"                                  : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"                              }                            >                              {stack.ativo ? "Ativa" : "Inativa"}                            </Button>                            <Button                              variant="ghost"                              size="sm"                              onClick={() => handleEditStack(stack)}                            >                              <Edit className="h-4 w-4" />                            </Button>                            <Button                              variant="ghost"                              size="sm"                              onClick={() =>                                deleteStackMutation.mutate(stack.id)                              }                              className="text-destructive hover:text-destructive"                            >                              <Trash2 className="h-4 w-4" />                            </Button>                          </div>                        </div>                      </CardHeader>                      <CardContent>                        {stack.produtos.length > 0 ? (                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">                            {stack.produtos.map((stackProduto: any) => (                              <div                                key={stackProduto.id}                                className="border border-border rounded-lg p-3 flex items-center space-x-3"                              >                                <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center flex-shrink-0">                                  {stackProduto.produto.fotos && stackProduto.produto.fotos.length > 0 ? (                                    <img                                      src={stackProduto.produto.fotos[0]}                                      alt=""                                      className="w-full h-full rounded object-cover"                                    />                                  ) : (                                    <ImageIcon className="w-4 h-4 text-muted-foreground" />                                  )}                                </div>                                <div className="flex-1 min-w-0">                                  <p className="text-sm font-medium text-foreground truncate">                                    {stackProduto.produto.titulo}                                  </p>                                  <p className="text-xs text-muted-foreground">                                    R$                                    {stackProduto.produto.valorDesconto?.toFixed(                                      2,                                    ) ||                                      stackProduto.produto.valorBruto.toFixed(                                        2,                                      )}                                  </p>                                </div>                              </div>                            ))}                          </div>                        ) : (                          <p className="text-muted-foreground text-sm">                            Nenhum produto adicionado a esta stack                          </p>                        )}                      </CardContent>                    </Card>                  ))                )}              </div>            </TabsContent>
@@ -860,7 +900,7 @@ export function AdminDashboard() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end space-x-2">
-                                  <Button variant="ghost" size="sm" onClick={() => { setEditingCategory(categoria); setCategoryForm({ titulo: categoria.titulo, descricao: categoria.descricao || "" }); setShowCategoryModal(true); }}>
+                                  <Button variant="ghost" size="sm" onClick={() => handleEditCategory(categoria)}>
                                     <Edit className="h-4 w-4" />
                                   </Button>
                                   <Button variant="ghost" size="sm" onClick={() => deleteCategoryMutation.mutate(categoria.id)} className="text-destructive hover:text-destructive">
@@ -1134,7 +1174,7 @@ export function AdminDashboard() {
                 onChange={(e) => setProductSearchTerm(e.target.value)}
               />
               <div className="max-h-48 overflow-y-auto border rounded-md p-2">
-                {produtosLoading ? (
+                {allProdutosLoading ? (
                   <p className="text-sm text-muted-foreground">
                     Carregando produtos...
                   </p>
