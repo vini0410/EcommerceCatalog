@@ -700,6 +700,7 @@ export function AdminDashboard() {
                     onPageChange={handlePageChange}
                     onItemsPerPageChange={(value) => setItemsPerPage(value)}
                     showPerPageSelector={true}
+                    itemsPerPageOptions={[20, 50, 100, 500]}
                   />
                 </div>
               )}
@@ -826,6 +827,7 @@ export function AdminDashboard() {
                     onPageChange={handlePageChange}
                     onItemsPerPageChange={(value) => setItemsPerPage(value)}
                     showPerPageSelector={true}
+                    itemsPerPageOptions={[20, 50, 100, 500]}
                   />
                 </div>
               )}

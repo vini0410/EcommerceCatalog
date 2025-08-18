@@ -17,6 +17,7 @@ interface PaginationProps {
   onItemsPerPageChange: (itemsPerPage: number) => void;
   showPerPageSelector?: boolean;
   showNavigation?: boolean;
+  itemsPerPageOptions?: number[];
 }
 
 export function Pagination({
@@ -28,6 +29,7 @@ export function Pagination({
   onItemsPerPageChange,
   showPerPageSelector = true,
   showNavigation = true,
+  itemsPerPageOptions = [1, 20, 50, 100],
 }: PaginationProps) {
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -130,10 +132,11 @@ export function Pagination({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">1</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
+              {itemsPerPageOptions.map((option) => (
+                <SelectItem key={option} value={option.toString()}>
+                  {option}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

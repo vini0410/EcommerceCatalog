@@ -170,6 +170,7 @@ export function SearchProducts() {
                   totalItems={data.total}
                   onPageChange={handlePageChange}
                   onItemsPerPageChange={handleItemsPerPageChange}
+                  itemsPerPageOptions={[20, 50, 100]}
                 />
               </div>
 
