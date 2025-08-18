@@ -1,6 +1,6 @@
 import { produtos, stacks, stackProdutos, configuracaoSite, sessaoAdmin, type Produto, type Stack, type StackProduto, type InsertProduto, type InsertStack, type InsertStackProduto, type InsertConfiguracaoSite, type InsertSessaoAdmin, categorias, categoriaProdutos, InsertCategoria, Categoria, InsertCategoriaProduto, CategoriaProduto } from "../shared/schema.js";
 import { db } from "./db.js";
-import { eq, desc, asc, and, ilike, or, max, count, inArray } from "drizzle-orm";
+import { eq, desc, asc, and, ilike, or, max, count, countDistinct, inArray } from "drizzle-orm";
 import { SUPABASE_BUCKET_PRODUTOS } from "../shared/constants.js";
 import { createClient } from '@supabase/supabase-js';
 
@@ -63,63 +63,66 @@ export class DatabaseStorage implements IStorage {
   async getProdutos(search?: string, page: number = 1, limit: number = 20, stackId?: string, categoryId?: string, includeInactive: boolean = false): Promise<{ produtos: (Produto & { categorias: Categoria[] })[], total: number }> {
     const offset = (page - 1) * limit;
 
-    const baseConditions = [];
+    const conditions = [];
     if (!includeInactive) {
-      baseConditions.push(eq(produtos.ativo, true));
+      conditions.push(eq(produtos.ativo, true));
     }
     if (search) {
-      baseConditions.push(or(
+      conditions.push(or(
         ilike(produtos.titulo, `%${search}%`),
         ilike(produtos.id, `%${search}%`)
       ));
     }
 
-    let query = db.select({
+    // Query to get the total count of distinct products
+    let countQuery = db.select({ value: countDistinct(produtos.id) }).from(produtos);
+
+    // Query to get the IDs of the products for the current page
+    let paginatedIdsQuery = db.selectDistinct({ id: produtos.id, titulo: produtos.titulo }).from(produtos);
+
+    if (stackId) {
+      const stackJoinCondition = eq(produtos.id, stackProdutos.produtoId);
+      countQuery = countQuery.innerJoin(stackProdutos, stackJoinCondition);
+      paginatedIdsQuery = paginatedIdsQuery.innerJoin(stackProdutos, stackJoinCondition);
+      conditions.push(eq(stackProdutos.stackId, stackId));
+    }
+
+    if (categoryId) {
+      const categoryJoinCondition = eq(produtos.id, categoriaProdutos.produtoId);
+      countQuery = countQuery.innerJoin(categoriaProdutos, categoryJoinCondition);
+      paginatedIdsQuery = paginatedIdsQuery.innerJoin(categoriaProdutos, categoryJoinCondition);
+      conditions.push(eq(categoriaProdutos.categoriaId, categoryId));
+    }
+
+    const finalWhereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    if (finalWhereClause) {
+      countQuery.where(finalWhereClause);
+      paginatedIdsQuery.where(finalWhereClause);
+    }
+
+    const [countResult, paginatedIdsResult] = await Promise.all([
+      countQuery,
+      paginatedIdsQuery.limit(limit).offset(offset).orderBy(asc(produtos.titulo), asc(produtos.id))
+    ]);
+
+    const total = countResult[0]?.value || 0;
+    const productIds = paginatedIdsResult.map(p => p.id);
+
+    if (productIds.length === 0) {
+      return { produtos: [], total };
+    }
+
+    // Now, fetch the full data for the paginated product IDs
+    const rawProdutosList = await db.select({
       produto: produtos,
-      categoria: categorias, // Select category data
+      categoria: categorias,
     })
     .from(produtos)
     .leftJoin(categoriaProdutos, eq(produtos.id, categoriaProdutos.produtoId))
     .leftJoin(categorias, eq(categoriaProdutos.categoriaId, categorias.id))
-    .$dynamic();
-
-    let countQuery = db.select({ value: count() }).from(produtos).$dynamic();
-
-    if (stackId) {
-      query = db.select({
-        produto: produtos,
-        categoria: categorias,
-      })
-      .from(produtos)
-      .innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId))
-      .leftJoin(categoriaProdutos, eq(produtos.id, categoriaProdutos.produtoId))
-      .leftJoin(categorias, eq(categoriaProdutos.categoriaId, categorias.id))
-      .where(eq(stackProdutos.stackId, stackId))
-      .$dynamic();
-
-      countQuery = db.select({ value: count() }).from(produtos).innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId)).where(eq(stackProdutos.stackId, stackId)).$dynamic();
-    }
-
-    if (categoryId) {
-      query = db.select({
-        produto: produtos,
-        categoria: categorias,
-      })
-      .from(produtos)
-      .innerJoin(categoriaProdutos, eq(produtos.id, categoriaProdutos.produtoId))
-      .leftJoin(categorias, eq(categoriaProdutos.categoriaId, categorias.id))
-      .where(eq(categoriaProdutos.categoriaId, categoryId))
-      .$dynamic();
-
-      countQuery = db.select({ value: count() }).from(produtos).innerJoin(categoriaProdutos, eq(produtos.id, categoriaProdutos.produtoId)).where(eq(categoriaProdutos.categoriaId, categoryId)).$dynamic();
-    }
-
-    const whereClause = baseConditions.length > 0 ? and(...baseConditions) : undefined;
-
-    const [rawProdutosList, countResult] = await Promise.all([
-      query.where(whereClause).limit(limit).offset(offset).orderBy(asc(produtos.titulo)),
-      countQuery.where(whereClause)
-    ]);
+    .where(inArray(produtos.id, productIds))
+    .orderBy(asc(produtos.titulo), asc(produtos.id));
 
     // Manually group categories for each product
     const produtosMap = new Map<string, Produto & { categorias: Categoria[] }>();
@@ -131,16 +134,20 @@ export class DatabaseStorage implements IStorage {
       if (!produtosMap.has(produto.id)) {
         produtosMap.set(produto.id, { ...produto, categorias: [] });
       }
-      if (categoria) { // Only add if category exists (for products without categories)
-        produtosMap.get(produto.id)?.categorias.push(categoria);
+      if (categoria) {
+        const existingCategories = produtosMap.get(produto.id)?.categorias;
+        if (!existingCategories?.some(c => c.id === categoria.id)) {
+          existingCategories?.push(categoria);
+        }
       }
     });
 
-    const produtosList = Array.from(produtosMap.values());
+    // The order from the `inArray` is not guaranteed, so we need to re-order based on the `productIds` order.
+    const produtosList = productIds.map(id => produtosMap.get(id)).filter(p => p) as (Produto & { categorias: Categoria[] })[];
 
     return {
       produtos: produtosList,
-      total: countResult[0]?.value || 0
+      total
     };
   }
 

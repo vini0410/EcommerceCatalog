@@ -81,7 +81,7 @@ export function AdminDashboard() {
   const queryClient = useQueryClient();
   
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 1;
+  const [itemsPerPage, setItemsPerPage] = useState(100);
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [showStackModal, setShowStackModal] = useState(false);
@@ -690,16 +690,16 @@ export function AdminDashboard() {
                 </Button>
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex justify-center mb-4">
+              {totalPages > 0 && (
+                <div className="mb-8 flex justify-center">
                   <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
                     itemsPerPage={itemsPerPage}
-                    totalItems={produtos.total}
+                    totalItems={produtos?.total || 0}
                     onPageChange={handlePageChange}
-                    onItemsPerPageChange={() => {}}
-                    showPerPageSelector={false}
+                    onItemsPerPageChange={(value) => setItemsPerPage(value)}
+                    showPerPageSelector={true}
                   />
                 </div>
               )}
@@ -816,16 +816,16 @@ export function AdminDashboard() {
                 </CardContent>
               </Card>
 
-              {totalPages > 1 && (
+              {totalPages > 0 && (
                 <div className="flex justify-center">
                   <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
                     itemsPerPage={itemsPerPage}
-                    totalItems={produtos.total}
+                    totalItems={produtos?.total || 0}
                     onPageChange={handlePageChange}
-                    onItemsPerPageChange={() => {}}
-                    showPerPageSelector={false}
+                    onItemsPerPageChange={(value) => setItemsPerPage(value)}
+                    showPerPageSelector={true}
                   />
                 </div>
               )}
