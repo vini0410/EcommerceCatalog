@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ImageIcon, MessageCircle, Phone } from "lucide-react"; // Import ImageIcon, MessageCircle, and Phone
-import { type Produto } from "@shared/schema";
-import { capitalize } from "@/lib/utils";
+import { ImageIcon, MessageCircle, Phone } from "lucide-react";
+import { type Produto, type Categoria } from "@shared/schema";
+import { capitalize, getContrastColor } from "@/lib/utils"; // Import getContrastColor
 
 interface ProductModalProps {
-  produto: Produto | null;
+  produto: (Produto & { categorias?: Categoria[] }) | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -22,8 +22,10 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
   const hasImages = produto.fotos && produto.fotos.length > 0;
   const images = hasImages ? produto.fotos : [];
 
-  const storePhoneNumber = "5548996551074"; // Replace with your store's number
-  const defaultMessage = `Olá, tenho interesse no produto: *${produto.titulo}* \nValor: R$ ${produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)} \nCodigo do Produto: ${produto.id}`;
+  const storePhoneNumber = "5548996551074";
+  const defaultMessage = `Olá, tenho interesse no produto: *${produto.titulo}* 
+Valor: R$ ${produto.valorDesconto?.toFixed(2) || produto.valorBruto.toFixed(2)} 
+Codigo do Produto: ${produto.id}`;
   const encodedMessage = encodeURIComponent(defaultMessage);
 
   const whatsappWebAppUrl = `https://web.whatsapp.com/send?phone=${storePhoneNumber}&text=${encodedMessage}`;
@@ -31,8 +33,7 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
 
   const isMobileOrTablet = () => {
     const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const isSmallScreen = window.innerWidth < 768; // Example breakpoint for small screens
-
+    const isSmallScreen = window.innerWidth < 768;
     return hasTouch || isSmallScreen;
   };
 
@@ -68,10 +69,9 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImageIndex === index
-                        ? "border-primary"
-                        : "border-border"
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${selectedImageIndex === index
+                      ? "border-primary"
+                      : "border-border"
                     }`}
                   >
                     <img
@@ -109,6 +109,24 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
                 )}
               </div>
 
+              {/* Display Categories */}
+              {produto.categorias && produto.categorias.length > 0 && (
+                <div className="mb-4 flex flex-wrap gap-2 justify-center md:justify-start">
+                  {produto.categorias.map((categoria) => (
+                    <Badge
+                      key={categoria.id}
+                      variant="secondary"
+                      style={{
+                        backgroundColor: categoria.color || '#6B7280', // Default to gray if no color
+                        color: getContrastColor(categoria.color || '#6B7280'),
+                      }}
+                    >
+                      {capitalize(categoria.titulo)}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
               <p className="text-muted-foreground mb-6 whitespace-pre-wrap">
                 {capitalize(produto.descricao!) ||
                   "Nenhuma descrição disponível para este produto."}
@@ -131,3 +149,4 @@ export function ProductModal({ produto, open, onOpenChange }: ProductModalProps)
     </Dialog>
   );
 }
+

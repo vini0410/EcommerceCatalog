@@ -11,23 +11,58 @@ datasource db {
 }
 
 model Produto {
-  id               String    @id @default(cuid())
-  titulo           String
-  valorBruto       Float
-  valorDesconto    Float?
-  descontoCalculado Float?  // campo calculado automaticamente
-  descricao        String? // Descrição detalhada do produto
-  fotos            String[] // array de URLs das fotos
-  ativo            Boolean  @default(true)
-  
+  id                String    @id @default(cuid())
+  titulo            String
+  valorBruto        Float
+  valorDesconto     Float?
+  descontoCalculado Float? // campo calculado automaticamente
+  descricao         String? // Descrição detalhada do produto
+  fotos             String[] // array de URLs das fotos
+  ativo             Boolean  @default(true)
+
   // Timestamps
-  criadoEm         DateTime @default(now())
-  atualizadoEm     DateTime @updatedAt
-  
+  criadoEm          DateTime @default(now())
+  atualizadoEm      DateTime @updatedAt
+
   // Relacionamentos
-  stackProdutos    StackProduto[]
-  
+  stackProdutos     StackProduto[]
+  categoriaProdutos CategoriaProduto[]
+
   @@map("produtos")
+}
+
+model Categoria {
+  id          String    @id @default(cuid())
+  titulo      String
+  color       String? // New field for category color
+  ativo       Boolean   @default(true)
+
+  // Timestamps
+  criadoEm    DateTime  @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  // Relacionamentos
+  produtos    CategoriaProduto[]
+
+  @@map("categorias")
+}
+
+model CategoriaProduto {
+  id          String   @id @default(cuid())
+  categoriaId String
+  produtoId   String
+
+  // Relacionamentos
+  categoria   Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  produto     Produto   @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  criadoEm    DateTime  @default(now())
+
+  @@map("categoria_produtos")
+  @@unique([categoriaId, produtoId])
+  @@index([categoriaId])
+  @@index([produtoId])
 }
 
 model Stack {
@@ -35,14 +70,14 @@ model Stack {
   titulo      String
   ordem       Int       @default(0) // ordem de exibição na página
   ativo       Boolean   @default(true)
-  
+
   // Timestamps
   criadoEm    DateTime  @default(now())
   atualizadoEm DateTime @updatedAt
-  
+
   // Relacionamentos
   produtos    StackProduto[]
-  
+
   @@map("stacks")
   @@index([ordem])
 }
@@ -52,14 +87,14 @@ model StackProduto {
   stackId   String
   produtoId String
   ordem     Int     @default(0) // ordem do produto dentro da stack
-  
+
   // Relacionamentos
   stack     Stack   @relation(fields: [stackId], references: [id], onDelete: Cascade)
   produto   Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
-  
+
   // Timestamps
   criadoEm  DateTime @default(now())
-  
+
   @@map("stack_produtos")
   @@unique([stackId, produtoId]) // um produto não pode estar duplicado na mesma stack
   @@index([stackId, ordem])
@@ -71,11 +106,11 @@ model ConfiguracaoSite {
   chave            String   @unique
   valor            String
   descricao        String?
-  
+
   // Timestamps
   criadoEm         DateTime @default(now())
   atualizadoEm     DateTime @updatedAt
-  
+
   @@map("configuracao_site")
 }
 
@@ -84,10 +119,10 @@ model SessaoAdmin {
   token        String   @unique
   ativo        Boolean  @default(true)
   expiraEm     DateTime
-  
+
   // Timestamps
   criadoEm     DateTime @default(now())
-  
+
   @@map("sessao_admin")
   @@index([token])
   @@index([expiraEm])

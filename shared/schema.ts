@@ -16,6 +16,22 @@ export const produtos = pgTable("produtos", {
   atualizadoEm: timestamp("atualizadoEm").notNull().defaultNow(),
 });
 
+export const categorias = pgTable("categorias", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  titulo: text("titulo").notNull(),
+  color: text("color"), // New field for category color
+  ativo: boolean("ativo").notNull().default(true),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizadoEm").notNull().defaultNow(),
+});
+
+export const categoriaProdutos = pgTable("categoria_produtos", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  categoriaId: text("categoriaId").notNull().references(() => categorias.id, { onDelete: "cascade" }),
+  produtoId: text("produtoId").notNull().references(() => produtos.id, { onDelete: "cascade" }),
+  criadoEm: timestamp("criadoEm").notNull().defaultNow(),
+});
+
 export const stacks = pgTable("stacks", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   titulo: text("titulo").notNull(),
@@ -53,6 +69,22 @@ export const sessaoAdmin = pgTable("sessao_admin", {
 // Relations
 export const produtosRelations = relations(produtos, ({ many }) => ({
   stackProdutos: many(stackProdutos),
+  categoriaProdutos: many(categoriaProdutos),
+}));
+
+export const categoriasRelations = relations(categorias, ({ many }) => ({
+  produtos: many(categoriaProdutos),
+}));
+
+export const categoriaProdutosRelations = relations(categoriaProdutos, ({ one }) => ({
+  categoria: one(categorias, {
+    fields: [categoriaProdutos.categoriaId],
+    references: [categorias.id],
+  }),
+  produto: one(produtos, {
+    fields: [categoriaProdutos.produtoId],
+    references: [produtos.id],
+  }),
 }));
 
 export const stacksRelations = relations(stacks, ({ many }) => ({
@@ -75,6 +107,19 @@ export const insertProdutoSchema = createInsertSchema(produtos).omit({
   id: true,
   criadoEm: true,
   atualizadoEm: true,
+}).extend({
+  categoriaIds: z.array(z.string()).optional(),
+});
+
+export const insertCategoriaSchema = createInsertSchema(categorias).omit({
+  id: true,
+  criadoEm: true,
+  atualizadoEm: true,
+});
+
+export const insertCategoriaProdutoSchema = createInsertSchema(categoriaProdutos).omit({
+  id: true,
+  criadoEm: true,
 });
 
 export const insertStackSchema = createInsertSchema(stacks).omit({
@@ -107,6 +152,10 @@ export const insertSessaoAdminSchema = createInsertSchema(sessaoAdmin).omit({
 // Types
 export type Produto = typeof produtos.$inferSelect;
 export type InsertProduto = z.infer<typeof insertProdutoSchema>;
+export type Categoria = typeof categorias.$inferSelect;
+export type InsertCategoria = z.infer<typeof insertCategoriaSchema>;
+export type CategoriaProduto = typeof categoriaProdutos.$inferSelect;
+export type InsertCategoriaProduto = z.infer<typeof insertCategoriaProdutoSchema>;
 export type Stack = typeof stacks.$inferSelect;
 export type InsertStack = z.infer<typeof insertStackSchema>;
 export type StackProduto = typeof stackProdutos.$inferSelect;

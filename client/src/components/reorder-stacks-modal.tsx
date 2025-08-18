@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Save, X } from "lucide-react";
-import { type Stack } from "@shared/schema";
+import { type Stack, type StackProduto, type Produto } from "@shared/schema";
 import {
   DndContext,
   closestCenter,
@@ -29,12 +29,12 @@ import { CSS } from "@dnd-kit/utilities";
 interface ReorderStacksModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  stacks: Stack[];
-  onSave: (reorderedStacks: Stack[]) => void;
+  stacks: (Stack & { produtos: (StackProduto & { produto: Produto })[] })[];
+  onSave: (reorderedStacks: (Stack & { produtos: (StackProduto & { produto: Produto })[] })[]) => void;
 }
 
 interface SortableItemProps {
-  stack: Stack;
+  stack: (Stack & { produtos: (StackProduto & { produto: Produto })[] });
 }
 
 function SortableItem({ stack }: SortableItemProps) {
@@ -66,7 +66,7 @@ export function ReorderStacksModal({
   stacks,
   onSave,
 }: ReorderStacksModalProps) {
-  const [reorderedStacks, setReorderedStacks] = useState<Stack[]>([]);
+  const [reorderedStacks, setReorderedStacks] = useState<(Stack & { produtos: (StackProduto & { produto: Produto })[] })[]>([]);
 
   useEffect(() => {
     // Initialize reorderedStacks when the modal opens or stacks prop changes

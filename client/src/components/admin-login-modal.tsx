@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -23,6 +24,7 @@ interface AdminLoginModalProps {
 export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLoginModalProps) {
   const [codigo, setCodigo] = useState("");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const loginMutation = useMutation({
     mutationFn: (codigo: string) => loginAdmin(codigo),
@@ -50,13 +52,15 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     loginMutation.mutate(codigo);
   };
 
-  const handleCancel = () => {
-    onOpenChange(false);
-    setCodigo("");
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      navigate("/");
+    }
+    onOpenChange(open);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="text-center mb-6">
@@ -92,7 +96,6 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
               type="button"
               variant="outline"
               className="flex-1"
-              onClick={handleCancel}
               disabled={loginMutation.isPending}
             >
               Cancelar

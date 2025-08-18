@@ -57,6 +57,8 @@ export const checkAuthStatus = async () => {
 };
 
 export const api = {
+  // This is a dummy comment to force a file change and trigger a rebuild.
+
   // Produtos públicos
   async getProdutos(search?: string, page?: number, limit?: number, stackId?: string, includeInactive?: boolean) {
     const params = new URLSearchParams();
@@ -299,6 +301,106 @@ export const api = {
         errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
       }
       throw new Error(`Erro ao reordenar stacks: ${errorMessage}`); // Modified message
+    }
+    return res.json();
+  },
+
+  // Categorias
+  async getCategorias(includeInactive?: boolean) {
+    const params = new URLSearchParams();
+    if (includeInactive) params.append('includeInactive', 'true');
+    const url = `${API_BASE_URL}/api/categorias${params.toString() ? `?${params.toString()}` : ''}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      let errorMessage = `HTTP error! Status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {
+        const errorText = await res.text();
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
+      throw new Error(`Erro ao buscar categorias: ${errorMessage}`);
+    }
+    return res.json();
+  },
+
+  async createCategoria(categoria: any) {
+    const res = await fetch(`${API_BASE_URL}/api/admin/categorias`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(categoria)
+    });
+    if (!res.ok) {
+      let errorMessage = `HTTP error! Status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {
+        const errorText = await res.text();
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
+      throw new Error(`Erro ao criar categoria: ${errorMessage}`);
+    }
+    return res.json();
+  },
+
+  async updateCategoria(id: string, categoria: any) {
+    const res = await fetch(`${API_BASE_URL}/api/admin/categorias/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(categoria)
+    });
+    if (!res.ok) {
+      let errorMessage = `HTTP error! Status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {
+        const errorText = await res.text();
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
+      throw new Error(`Erro ao atualizar categoria: ${errorMessage}`);
+    }
+    return res.json();
+  },
+
+  async deleteCategoria(id: string) {
+    const res = await fetch(`${API_BASE_URL}/api/admin/categorias/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      let errorMessage = `HTTP error! Status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {
+        const errorText = await res.text();
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
+      throw new Error(`Erro ao remover categoria: ${errorMessage}`);
+    }
+    return res.json();
+  },
+
+  async toggleCategoriaStatus(id: string) {
+    const res = await fetch(`${API_BASE_URL}/api/admin/categorias/${id}/toggle-status`, {
+      method: 'PUT',
+    });
+    if (!res.ok) {
+      let errorMessage = `HTTP error! Status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {
+        const errorText = await res.text();
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
+      throw new Error(`Erro ao alternar status da categoria: ${errorMessage}`);
     }
     return res.json();
   }

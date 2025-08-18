@@ -9,11 +9,12 @@ import { Footer } from "@/components/footer";
 import { FeaturedStacks } from "@/pages/featured-stacks";
 import { SearchProducts } from "@/pages/search-products";
 import { AdminDashboard } from "@/pages/admin-dashboard";
+import { AdminLoginPage } from "@/pages/admin-login";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/context/AuthContext";
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
-  const { isLoggedIn, isLoading } = useAuth();
+  const { isLoggedIn, isLoading, isLoggingOut } = useAuth();
 
   if (isLoading) {
     return (
@@ -23,7 +24,11 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
     );
   }
 
-  return isLoggedIn ? children : <Navigate to="/" replace />;
+  if (isLoggingOut) {
+    return <Navigate to="/" replace />;
+  }
+
+  return isLoggedIn ? children : <Navigate to="/admin" replace />;
 }
 
 function App() {
@@ -37,8 +42,9 @@ function App() {
               <Routes>
                 <Route path="/" element={<FeaturedStacks />} />
                 <Route path="/produtos" element={<SearchProducts />} />
+                <Route path="/admin" element={<AdminLoginPage />} />
                 <Route
-                  path="/admin"
+                  path="/admin/dashboard"
                   element={
                     <ProtectedRoute>
                       <AdminDashboard />

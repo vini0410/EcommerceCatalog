@@ -1,6 +1,7 @@
-import { produtos, stacks, stackProdutos, configuracaoSite, sessaoAdmin, type Produto, type Stack, type StackProduto, type InsertProduto, type InsertStack, type InsertStackProduto, type InsertConfiguracaoSite, type InsertSessaoAdmin } from "../shared/schema.js";
+import { produtos, stacks, stackProdutos, configuracaoSite, sessaoAdmin, type Produto, type Stack, type StackProduto, type InsertProduto, type InsertStack, type InsertStackProduto, type InsertConfiguracaoSite, type InsertSessaoAdmin, categorias, categoriaProdutos, InsertCategoria, Categoria, InsertCategoriaProduto, CategoriaProduto } from "../shared/schema.js";
 import { db } from "./db.js";
-import { eq, desc, asc, and, ilike, or, max, count } from "drizzle-orm";
+import { eq, desc, asc, and, ilike, or, max, count, countDistinct, inArray } from "drizzle-orm";
+import { SUPABASE_BUCKET_PRODUTOS } from "../shared/constants.js";
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -16,10 +17,10 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
 
 export interface IStorage {
   // Produtos
-  getProdutos(search?: string, page?: number, limit?: number, stackId?: string, includeInactive?: boolean): Promise<{ produtos: Produto[], total: number }>;
-  getProdutoById(id: string): Promise<Produto | undefined>;
-  createProduto(produto: InsertProduto): Promise<Produto>;
-  updateProduto(id: string, produto: Partial<InsertProduto>): Promise<Produto>;
+  getProdutos(search?: string, page?: number, limit?: number, stackId?: string, categoryId?: string, includeInactive?: boolean): Promise<{ produtos: Produto[], total: number }>;
+  getProdutoById(id: string): Promise<(Produto & { categorias: Categoria[] }) | undefined>;
+  createProduto(produto: InsertProduto, categoriaIds?: string[]): Promise<Produto>;
+  updateProduto(id: string, produto: Partial<InsertProduto>, categoriaIds?: string[]): Promise<Produto>;
   toggleProdutoStatus(id: string): Promise<Produto>;
   deleteProduto(id: string): Promise<void>;
 
@@ -37,6 +38,17 @@ export interface IStorage {
   removeProdutoFromStack(stackId: string, produtoId: string): Promise<void>;
   updateStackProdutoOrdem(id: string, ordem: number): Promise<StackProduto>;
 
+  // Categorias
+  getCategorias(includeInactive?: boolean): Promise<Categoria[]>;
+  getCategoriaById(id: string): Promise<Categoria | undefined>;
+  createCategoria(categoria: InsertCategoria): Promise<Categoria>;
+  updateCategoria(id: string, categoria: Partial<InsertCategoria>): Promise<Categoria>;
+  toggleCategoriaStatus(id: string): Promise<Categoria>;
+  deleteCategoria(id: string): Promise<void>;
+  addCategoriaToProduto(categoriaProduto: InsertCategoriaProduto): Promise<CategoriaProduto>;
+  removeCategoriaFromProduto(categoriaId: string, produtoId: string): Promise<void>;
+  updateProdutoCategorias(produtoId: string, categoriaIds: string[]): Promise<void>;
+
   // Configuração
   getConfiguracao(chave: string): Promise<string | undefined>;
   setConfiguracao(config: InsertConfiguracaoSite): Promise<void>;
@@ -48,85 +60,110 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getProdutos(search?: string, page: number = 1, limit: number = 20, stackId?: string, includeInactive: boolean = false): Promise<{ produtos: Produto[], total: number }> {
+  async getProdutos(search?: string, page: number = 1, limit: number = 20, stackId?: string, categoryId?: string, includeInactive: boolean = false): Promise<{ produtos: (Produto & { categorias: Categoria[] })[], total: number }> {
     const offset = (page - 1) * limit;
-    
-    const baseConditions = [];
+
+    const conditions = [];
     if (!includeInactive) {
-      baseConditions.push(eq(produtos.ativo, true));
+      conditions.push(eq(produtos.ativo, true));
     }
     if (search) {
-      baseConditions.push(or(
+      conditions.push(or(
         ilike(produtos.titulo, `%${search}%`),
         ilike(produtos.id, `%${search}%`)
       ));
     }
 
-    let produtosList: Produto[] = [];
-    let total = 0;
+    // Query to get the total count of distinct products
+    let countQuery = db.select({ value: countDistinct(produtos.id) }).from(produtos);
+
+    // Query to get the IDs of the products for the current page
+    let paginatedIdsQuery = db.selectDistinct({ id: produtos.id, titulo: produtos.titulo }).from(produtos);
 
     if (stackId) {
-      const stackConditions = [...baseConditions, eq(stackProdutos.stackId, stackId)];
-      const whereClause = and(...stackConditions);
-
-      const [joinedProdutosList, countResult] = await Promise.all([
-        db.select({
-            id: produtos.id,
-            titulo: produtos.titulo,
-            valorBruto: produtos.valorBruto,
-            valorDesconto: produtos.valorDesconto,
-            descontoCalculado: produtos.descontoCalculado,
-            descricao: produtos.descricao,
-            fotos: produtos.fotos,
-            ativo: produtos.ativo,
-            criadoEm: produtos.criadoEm,
-            atualizadoEm: produtos.atualizadoEm,
-          })
-          .from(produtos)
-          .innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId))
-          .where(whereClause)
-          .limit(limit)
-          .offset(offset)
-          .orderBy(asc(produtos.titulo)),
-        db.select({ value: count() })
-          .from(produtos)
-          .innerJoin(stackProdutos, eq(produtos.id, stackProdutos.produtoId))
-          .where(whereClause)
-      ]);
-      produtosList = joinedProdutosList;
-      total = countResult[0]?.value || 0;
-
-    } else {
-      const whereClause = baseConditions.length > 0 ? and(...baseConditions) : undefined;
-
-      const [directProdutosList, countResult] = await Promise.all([
-        db.select()
-          .from(produtos)
-          .where(whereClause)
-          .limit(limit)
-          .offset(offset)
-          .orderBy(asc(produtos.titulo)),
-        db.select({ value: count() })
-          .from(produtos)
-          .where(whereClause)
-      ]);
-      produtosList = directProdutosList;
-      total = countResult[0]?.value || 0;
+      const stackJoinCondition = eq(produtos.id, stackProdutos.produtoId);
+      countQuery = countQuery.innerJoin(stackProdutos, stackJoinCondition);
+      paginatedIdsQuery = paginatedIdsQuery.innerJoin(stackProdutos, stackJoinCondition);
+      conditions.push(eq(stackProdutos.stackId, stackId));
     }
+
+    if (categoryId) {
+      const categoryJoinCondition = eq(produtos.id, categoriaProdutos.produtoId);
+      countQuery = countQuery.innerJoin(categoriaProdutos, categoryJoinCondition);
+      paginatedIdsQuery = paginatedIdsQuery.innerJoin(categoriaProdutos, categoryJoinCondition);
+      conditions.push(eq(categoriaProdutos.categoriaId, categoryId));
+    }
+
+    const finalWhereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    if (finalWhereClause) {
+      countQuery.where(finalWhereClause);
+      paginatedIdsQuery.where(finalWhereClause);
+    }
+
+    const [countResult, paginatedIdsResult] = await Promise.all([
+      countQuery,
+      paginatedIdsQuery.limit(limit).offset(offset).orderBy(asc(produtos.titulo), asc(produtos.id))
+    ]);
+
+    const total = countResult[0]?.value || 0;
+    const productIds = paginatedIdsResult.map(p => p.id);
+
+    if (productIds.length === 0) {
+      return { produtos: [], total };
+    }
+
+    // Now, fetch the full data for the paginated product IDs
+    const rawProdutosList = await db.select({
+      produto: produtos,
+      categoria: categorias,
+    })
+    .from(produtos)
+    .leftJoin(categoriaProdutos, eq(produtos.id, categoriaProdutos.produtoId))
+    .leftJoin(categorias, eq(categoriaProdutos.categoriaId, categorias.id))
+    .where(inArray(produtos.id, productIds))
+    .orderBy(asc(produtos.titulo), asc(produtos.id));
+
+    // Manually group categories for each product
+    const produtosMap = new Map<string, Produto & { categorias: Categoria[] }>();
+
+    rawProdutosList.forEach(row => {
+      const produto = row.produto;
+      const categoria = row.categoria;
+
+      if (!produtosMap.has(produto.id)) {
+        produtosMap.set(produto.id, { ...produto, categorias: [] });
+      }
+      if (categoria) {
+        const existingCategories = produtosMap.get(produto.id)?.categorias;
+        if (!existingCategories?.some(c => c.id === categoria.id)) {
+          existingCategories?.push(categoria);
+        }
+      }
+    });
+
+    // The order from the `inArray` is not guaranteed, so we need to re-order based on the `productIds` order.
+    const produtosList = productIds.map(id => produtosMap.get(id)).filter(p => p) as (Produto & { categorias: Categoria[] })[];
 
     return {
       produtos: produtosList,
-      total: total
+      total
     };
   }
 
-  async getProdutoById(id: string): Promise<Produto | undefined> {
+  async getProdutoById(id: string): Promise<(Produto & { categorias: Categoria[] }) | undefined> {
     const [produto] = await db.select().from(produtos).where(eq(produtos.id, id));
-    return produto;
+    if (!produto) return undefined;
+
+    const produtoCategorias = await db.select({ ...categorias }).from(categorias)
+      .innerJoin(categoriaProdutos, eq(categorias.id, categoriaProdutos.categoriaId))
+      .where(eq(categoriaProdutos.produtoId, id));
+
+    return { ...produto, categorias: produtoCategorias };
   }
 
-  async createProduto(produto: InsertProduto): Promise<Produto> {
-    const descontoCalculado = produto.valorDesconto && produto.valorBruto 
+  async createProduto(produto: InsertProduto, categoriaIds?: string[]): Promise<Produto> {
+    const descontoCalculado = produto.valorBruto && produto.valorDesconto
       ? Math.round(((produto.valorBruto - produto.valorDesconto) / produto.valorBruto) * 100)
       : 0;
 
@@ -138,11 +175,16 @@ export class DatabaseStorage implements IStorage {
         atualizadoEm: new Date()
       })
       .returning();
+
+    if (categoriaIds && categoriaIds.length > 0) {
+      await this.updateProdutoCategorias(novoProduto.id, categoriaIds);
+    }
+
     return novoProduto;
   }
 
-  async updateProduto(id: string, produto: Partial<InsertProduto>): Promise<Produto> {
-    const descontoCalculado = produto.valorDesconto && produto.valorBruto 
+  async updateProduto(id: string, produto: Partial<InsertProduto>, categoriaIds?: string[]): Promise<Produto> {
+    const descontoCalculado = produto.valorBruto && produto.valorDesconto
       ? Math.round(((produto.valorBruto - produto.valorDesconto) / produto.valorBruto) * 100)
       : undefined;
 
@@ -155,6 +197,11 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(produtos.id, id))
       .returning();
+
+    if (categoriaIds) {
+      await this.updateProdutoCategorias(id, categoriaIds);
+    }
+
     return produtoAtualizado;
   }
 
@@ -175,99 +222,70 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProduto(id: string): Promise<void> {
-    // 1. Obter o produto para pegar as URLs das fotos
     const produtoToDelete = await this.getProdutoById(id);
     if (!produtoToDelete) {
       throw new Error("Produto não encontrado");
     }
 
-    // 2. Extrair os caminhos dos arquivos das URLs e deletar do Supabase Storage
     if (produtoToDelete.fotos && produtoToDelete.fotos.length > 0) {
-      console.log("Produto a ser deletado possui fotos:", produtoToDelete.fotos);
       const filePaths = produtoToDelete.fotos.map(url => {
-        // Extrai o caminho do arquivo da URL pública do Supabase
-        // Ex: https://<project_id>.supabase.co/storage/v1/object/public/imagens-produtos/caminho/do/arquivo.jpg
-        // Queremos: imagens-produtos/caminho/do/arquivo.jpg
-        const parts = url.split('/');
-        const bucketName = 'imagens-produtos'; // Nome do seu bucket
+        const parts = url.split("/");
+        const bucketName = SUPABASE_BUCKET_PRODUTOS;
         const bucketNameIndex = parts.indexOf(bucketName);
         if (bucketNameIndex === -1) {
           console.error("Nome do bucket não encontrado na URL da imagem:", url);
-          return ''; // Retorna vazio ou lança um erro, dependendo da sua estratégia
+          return '';
         }
         return parts.slice(bucketNameIndex + 1).join('/');
       });
-      console.log("Caminhos dos arquivos para deletar:", filePaths);
 
-      const { error: deleteError } = await supabaseAdmin.storage
-        .from('imagens-produtos') // Nome do seu bucket
-        .remove(filePaths);
+      const { error: deleteError } = await supabaseAdmin.storage.from(
+        SUPABASE_BUCKET_PRODUTOS,
+      ).remove(filePaths);
 
       if (deleteError) {
         console.error("Erro ao deletar imagens do Supabase Storage:", deleteError);
-        // Decida se você quer lançar um erro aqui ou apenas logar
-        // Por enquanto, vamos apenas logar e continuar com a exclusão do DB
-      } else {
-        console.log("Imagens deletadas do Supabase Storage com sucesso.");
       }
-    } else {
-      console.log("Produto a ser deletado não possui fotos ou o array de fotos está vazio.");
     }
 
-    // 3. Deletar o produto do banco de dados
     await db.delete(produtos).where(eq(produtos.id, id));
   }
 
   async getStacks(includeInactive: boolean = false): Promise<(Stack & { produtos: (StackProduto & { produto: Produto })[] })[]> {
-    console.log(`getStacks called with includeInactive: ${includeInactive}`);
-
     let stacksList: Stack[] = [];
-    try {
-      const query = db.select().from(stacks);
-      if (!includeInactive) {
-        query.where(eq(stacks.ativo, true));
-      }
-      stacksList = await query.orderBy(asc(stacks.ordem));
-      console.log(`Stacks retrieved: ${stacksList.length} stacks`);
-    } catch (error) {
-      console.error("Error fetching initial stacks list:", error);
-      throw error; // Re-throw to be caught by the route handler
+    const query = db.select().from(stacks);
+    if (!includeInactive) {
+      query.where(eq(stacks.ativo, true));
     }
+    stacksList = await query.orderBy(asc(stacks.ordem));
 
-    let stacksWithProdutos = [];
-    try {
-      stacksWithProdutos = await Promise.all(
-        stacksList.map(async (stack) => {
-          const productConditions = [eq(stackProdutos.stackId, stack.id)];
-          if (!includeInactive) {
-            productConditions.push(eq(produtos.ativo, true));
-          }
+    let stacksWithProdutos = await Promise.all(
+      stacksList.map(async (stack) => {
+        const productConditions = [eq(stackProdutos.stackId, stack.id)];
+        if (!includeInactive) {
+          productConditions.push(eq(produtos.ativo, true));
+        }
 
-          const stackProdutosList = await db
-            .select({
-              stack_produtos: stackProdutos,
-              produtos: produtos
-            })
-            .from(stackProdutos)
-            .innerJoin(produtos, eq(stackProdutos.produtoId, produtos.id))
-            .where(and(...productConditions))
-            .orderBy(asc(stackProdutos.ordem));
+        const stackProdutosList = await db
+          .select({
+            stack_produtos: stackProdutos,
+            produtos: produtos
+          })
+          .from(stackProdutos)
+          .innerJoin(produtos, eq(stackProdutos.produtoId, produtos.id))
+          .where(and(...productConditions))
+          .orderBy(asc(stackProdutos.ordem));
 
-          return {
-            ...stack,
-            produtos: stackProdutosList.map(item => ({
-              ...item.stack_produtos,
-              produto: item.produtos
-            }))
-          };
-        })
-      );
-    } catch (error) {
-      console.error("Error fetching products for stacks:", error);
-      throw error; // Re-throw to be caught by the route handler
-    }
+        return {
+          ...stack,
+          produtos: stackProdutosList.map(item => ({
+            ...item.stack_produtos,
+            produto: item.produtos
+          }))
+        };
+      })
+    );
 
-    // Filter out stacks that have no active products for public view
     if (!includeInactive) {
       stacksWithProdutos = stacksWithProdutos.filter(stack => stack.produtos.length > 0);
     }
@@ -317,10 +335,8 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     if (produtosData !== undefined) {
-      // Delete existing stack products for this stack
       await db.delete(stackProdutos).where(eq(stackProdutos.stackId, id));
 
-      // Insert new stack products
       if (produtosData.length > 0) {
         const stackProdutosToInsert = produtosData.map(p => ({
           stackId: id,
@@ -344,7 +360,6 @@ export class DatabaseStorage implements IStorage {
     if (!stack) {
       throw new Error("Stack não encontrada");
     }
-    console.log(`Stack ${stack.id} - Ativo antes: ${stack.ativo}`);
     const [stackAtualizada] = await db
       .update(stacks)
       .set({
@@ -353,7 +368,6 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(stacks.id, id))
       .returning();
-    console.log(`Stack ${stackAtualizada.id} - Ativo depois: ${stackAtualizada.ativo}`);
     return stackAtualizada;
   }
 
@@ -389,6 +403,91 @@ export class DatabaseStorage implements IStorage {
       .where(eq(stackProdutos.id, id))
       .returning();
     return stackProdutoAtualizado;
+  }
+
+  async getCategorias(includeInactive: boolean = false): Promise<Categoria[]> {
+    const query = db.select().from(categorias);
+    if (!includeInactive) {
+      query.where(eq(categorias.ativo, true));
+    }
+    return await query.orderBy(asc(categorias.titulo));
+  }
+
+  async getCategoriaById(id: string): Promise<Categoria | undefined> {
+    const [categoria] = await db.select().from(categorias).where(eq(categorias.id, id));
+    return categoria;
+  }
+
+  async createCategoria(categoria: InsertCategoria): Promise<Categoria> {
+    const [novaCategoria] = await db
+      .insert(categorias)
+      .values({
+        ...categoria,
+        atualizadoEm: new Date()
+      })
+      .returning();
+    return novaCategoria;
+  }
+
+  async updateCategoria(id: string, categoria: Partial<InsertCategoria>): Promise<Categoria> {
+    const [categoriaAtualizada] = await db
+      .update(categorias)
+      .set({
+        ...categoria,
+        atualizadoEm: new Date()
+      })
+      .where(eq(categorias.id, id))
+      .returning();
+    return categoriaAtualizada;
+  }
+
+  async toggleCategoriaStatus(id: string): Promise<Categoria> {
+    const [categoria] = await db.select().from(categorias).where(eq(categorias.id, id));
+    if (!categoria) {
+      throw new Error("Categoria não encontrada");
+    }
+    const [categoriaAtualizada] = await db
+      .update(categorias)
+      .set({
+        ativo: !categoria.ativo,
+        atualizadoEm: new Date()
+      })
+      .where(eq(categorias.id, id))
+      .returning();
+    return categoriaAtualizada;
+  }
+
+  async deleteCategoria(id: string): Promise<void> {
+    await db.delete(categorias).where(eq(categorias.id, id));
+  }
+
+  async addCategoriaToProduto(categoriaProduto: InsertCategoriaProduto): Promise<CategoriaProduto> {
+    const [novaCategoriaProduto] = await db
+      .insert(categoriaProdutos)
+      .values(categoriaProduto)
+      .returning();
+    return novaCategoriaProduto;
+  }
+
+  async removeCategoriaFromProduto(categoriaId: string, produtoId: string): Promise<void> {
+    await db.delete(categoriaProdutos).where(
+      and(
+        eq(categoriaProdutos.categoriaId, categoriaId),
+        eq(categoriaProdutos.produtoId, produtoId)
+      )
+    );
+  }
+
+  async updateProdutoCategorias(produtoId: string, categoriaIds: string[]): Promise<void> {
+    await db.delete(categoriaProdutos).where(eq(categoriaProdutos.produtoId, produtoId));
+    if (categoriaIds.length > 0) {
+      const categoriaProdutosToInsert = categoriaIds.map(categoriaId => ({
+        produtoId,
+        categoriaId,
+        criadoEm: new Date(),
+      }));
+      await db.insert(categoriaProdutos).values(categoriaProdutosToInsert);
+    }
   }
 
   async getConfiguracao(chave: string): Promise<string | undefined> {
@@ -434,7 +533,6 @@ export class DatabaseStorage implements IStorage {
 
     if (!sessao) return false;
 
-    // Check if session is expired
     if (new Date() > sessao.expiraEm) {
       await this.deleteSessaoAdmin(token);
       return false;
