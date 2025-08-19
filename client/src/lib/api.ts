@@ -60,12 +60,13 @@ export const api = {
   // This is a dummy comment to force a file change and trigger a rebuild.
 
   // Produtos públicos
-  async getProdutos(search?: string, page?: number, limit?: number, stackId?: string, includeInactive?: boolean) {
+  async getProdutos(q?: string, page?: number, limit?: number, stackId?: string, categoryIds?: string, includeInactive?: boolean) {
     const params = new URLSearchParams();
-    if (search) params.append('search', search);
+    if (q) params.append('q', q);
     if (page) params.append('page', page.toString());
     if (limit) params.append('limit', limit.toString());
     if (stackId) params.append('stackId', stackId);
+    if (categoryIds) params.append('categoryIds', categoryIds);
     if (includeInactive) params.append('includeInactive', 'true');
     
     const url = `${API_BASE_URL}/api/produtos${params.toString() ? `?${params.toString()}` : ''}`;
