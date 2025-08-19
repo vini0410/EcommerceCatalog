@@ -637,19 +637,17 @@ export function AdminDashboard() {
   const totalPages = produtos ? Math.ceil(produtos.total / itemsPerPage) : 0;
 
   return (
-    <div className="min-h-screen pt-16">
+    <div className="min-h-screen">
       {/* Header */}
-      <section className="gradient-bg py-12">
+      <section className="gradient-bg py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-bold text-foreground mb-4">
-                ⚙️ Painel <span className="text-gradient">Administrativo</span>
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Gerencie produtos e stacks do seu catálogo
-              </p>
-            </div>
+          <div className="text-center mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+              ⚙️ Painel <span className="text-gradient">Administrativo</span>
+            </h1>
+            <p className="text-base text-muted-foreground max-w-2xl mx-auto">
+              Gerencie produtos e stacks do seu catálogo
+            </p>
           </div>
         </div>
       </section>

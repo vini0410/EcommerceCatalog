@@ -105,7 +105,7 @@ export function SearchProducts() {
   const showNoResults = !isLoading && data && data.produtos.length === 0;
 
   return (
-    <div className="min-h-screen pt-16">
+    <div className="min-h-screen">
       {/* Search Header */}
       <section className="gradient-bg py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
