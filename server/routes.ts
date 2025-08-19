@@ -56,13 +56,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // --- Rotas Públicas ---
   app.get("/api/produtos", async (req, res) => {
     try {
-      const { search, page = 1, limit = 20, stackId, categoryId, includeInactive } = req.query;
+      const { q, page = 1, limit = 20, stackId, categoryIds, includeInactive } = req.query;
       const resultado = await storage.getProdutos(
-        search as string,
+        q as string,
         parseInt(page as string),
         parseInt(limit as string),
         stackId as string,
-        categoryId as string,
+        categoryIds as string,
         includeInactive === 'true'
       );
       res.json(resultado);

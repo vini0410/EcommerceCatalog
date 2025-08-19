@@ -131,6 +131,9 @@ export function AdminDashboard() {
     }
   }, [showStackModal]);
 
+  const [adminSearchQuery, setAdminSearchQuery] = useState("");
+  const [selectedAdminCategories, setSelectedAdminCategories] = useState<string[]>([]);
+
   // Populate selected products when editing an existing stack
   useEffect(() => {
     if (editingStack && editingStack.produtos) {
@@ -148,13 +151,13 @@ export function AdminDashboard() {
   }, [editingStack]);
 
   const { data: produtos, isLoading: produtosLoading } = useQuery({
-    queryKey: ["/api/produtos", currentPage, itemsPerPage],
-    queryFn: () => api.getProdutos("", currentPage, itemsPerPage, undefined, true),
+    queryKey: ["/api/produtos", currentPage, itemsPerPage, adminSearchQuery, selectedAdminCategories],
+    queryFn: () => api.getProdutos(adminSearchQuery, currentPage, itemsPerPage, undefined, selectedAdminCategories.join(','), true),
   });
 
   const { data: allProdutos, isLoading: allProdutosLoading } = useQuery({
     queryKey: ["/api/produtos/all"],
-    queryFn: () => api.getProdutos("", 1, 9999, undefined, true), // Fetch all for the modal
+    queryFn: () => api.getProdutos("", 1, 9999, undefined, undefined, true), // Fetch all for the modal
     enabled: showStackModal, // Only fetch when the stack modal is open
   });
 
@@ -171,7 +174,7 @@ export function AdminDashboard() {
     queryKey: ["/api/categorias"],
     // Fetch all categories (including inactive) for management purposes
     queryFn: () => api.getCategorias(true),
-    enabled: activeTab === "categories" || showProductModal, // Fetch for the categories tab or when the product modal is open
+    enabled: activeTab === "products" || activeTab === "categories" || showProductModal, // Fetch for the categories tab or when the product modal is open
   });
 
   // Mutations
@@ -690,8 +693,15 @@ export function AdminDashboard() {
                 </Button>
               </div>
 
-              {totalPages > 0 && (
-                <div className="mb-8 flex justify-center">
+              <div className="flex justify-between items-center mb-8">
+                <div className="w-full max-w-sm">
+                  <Input
+                    placeholder="Buscar por nome ou ID do produto..."
+                    value={adminSearchQuery}
+                    onChange={(e) => setAdminSearchQuery(e.target.value)}
+                  />
+                </div>
+                {totalPages > 0 && (
                   <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
@@ -702,135 +712,179 @@ export function AdminDashboard() {
                     showPerPageSelector={true}
                     itemsPerPageOptions={[20, 50, 100, 500]}
                   />
-                </div>
-              )}
-
-              <Card>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Produto</TableHead>
-                          <TableHead>Preço</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {produtosLoading ? (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8">
-                              Carregando produtos...
-                            </TableCell>
-                          </TableRow>
-                        ) : !produtos?.produtos.length ? (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8">
-                              Nenhum produto cadastrado
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          produtos.produtos.map((produto: Produto) => (
-                            <TableRow key={produto.id}>
-                              <TableCell>
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center">
-                                    {produto.fotos && produto.fotos.length > 0 ? (
-                                      <img
-                                        src={produto.fotos[0]}
-                                        alt=""
-                                        className="w-full h-full rounded-lg object-cover"
-                                      />
-                                    ) : (
-                                      <ImageIcon className="w-6 h-6 text-muted-foreground" />
-                                    )}
-                                  </div>
-                                  <div>
-                                    <div className="font-medium text-foreground">
-                                      {capitalize(produto.titulo)}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      #{produto.id.slice(-8).toUpperCase()}
-                                    </div>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="font-medium text-foreground">
-                                  R${" "}
-                                  {produto.valorDesconto?.toFixed(2) ||
-                                    produto.valorBruto.toFixed(2)}
-                                </div>
-                                {produto.valorDesconto && (
-                                  <div className="text-sm text-muted-foreground line-through">
-                                    R$ {produto.valorBruto.toFixed(2)}
-                                  </div>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    toggleProductStatusMutation.mutate(
-                                      produto.id,
-                                    )
-                                  }
-                                  className={
-                                    produto.ativo
-                                      ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
-                                      : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
-                                  }
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-8 items-start">
+                <aside className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Filtros</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-semibold mb-2">Categorias</h3>
+                        <div className="max-h-96 overflow-y-auto space-y-2 pr-2">
+                          {categoriasLoading ? (
+                            <p className="text-sm text-muted-foreground">Carregando...</p>
+                          ) : (
+                            categorias?.map(categoria => (
+                              <div key={categoria.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`admin-cat-${categoria.id}`}
+                                  checked={selectedAdminCategories.includes(categoria.id)}
+                                  onCheckedChange={(checked) => {
+                                    setSelectedAdminCategories(prev =>
+                                      checked
+                                        ? [...prev, categoria.id]
+                                        : prev.filter(id => id !== categoria.id)
+                                    );
+                                  }}
+                                />
+                                <label
+                                  htmlFor={`admin-cat-${categoria.id}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                                 >
-                                  {produto.ativo ? "Ativo" : "Inativo"}
-                                </Button>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end space-x-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEditProduct(produto)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      deleteProductMutation.mutate(produto.id)
-                                    }
-                                    className="text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
+                                  {capitalize(categoria.titulo)}
+                                </label>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </aside>
 
-              {totalPages > 0 && (
-                <div className="flex justify-center">
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    itemsPerPage={itemsPerPage}
-                    totalItems={produtos?.total || 0}
-                    onPageChange={handlePageChange}
-                    onItemsPerPageChange={(value) => setItemsPerPage(value)}
-                    showPerPageSelector={true}
-                    itemsPerPageOptions={[20, 50, 100, 500]}
-                  />
-                </div>
-              )}
+                {/* Main Content */}
+                <main className="space-y-8">
+                  <Card>
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Produto</TableHead>
+                              <TableHead>Preço</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Ações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {produtosLoading ? (
+                              <TableRow>
+                                <TableCell colSpan={5} className="text-center py-8">
+                                  Carregando produtos...
+                                </TableCell>
+                              </TableRow>
+                            ) : !produtos?.produtos.length ? (
+                              <TableRow>
+                                <TableCell colSpan={5} className="text-center py-8">
+                                  Nenhum produto encontrado para os filtros selecionados.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              produtos.produtos.map((produto: Produto) => (
+                                <TableRow key={produto.id}>
+                                  <TableCell>
+                                    <div className="flex items-center space-x-3">
+                                      <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center">
+                                        {produto.fotos && produto.fotos.length > 0 ? (
+                                          <img
+                                            src={produto.fotos[0]}
+                                            alt=""
+                                            className="w-full h-full rounded-lg object-cover"
+                                          />
+                                        ) : (
+                                          <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                      <div>
+                                        <div className="font-medium text-foreground">
+                                          {capitalize(produto.titulo)}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                          #{produto.id.slice(-8).toUpperCase()}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="font-medium text-foreground">
+                                      R${" "}
+                                      {produto.valorDesconto?.toFixed(2) ||
+                                        produto.valorBruto.toFixed(2)}
+                                    </div>
+                                    {produto.valorDesconto && (
+                                      <div className="text-sm text-muted-foreground line-through">
+                                        R$ {produto.valorBruto.toFixed(2)}
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        toggleProductStatusMutation.mutate(
+                                          produto.id,
+                                        )
+                                      }
+                                      className={
+                                        produto.ativo
+                                          ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
+                                          : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
+                                      }
+                                    >
+                                      {produto.ativo ? "Ativo" : "Inativo"}
+                                    </Button>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end space-x-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEditProduct(produto)}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          deleteProductMutation.mutate(produto.id)
+                                        }
+                                        className="text-destructive hover:text-destructive"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {totalPages > 0 && (
+                    <div className="flex justify-center">
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        itemsPerPage={itemsPerPage}
+                        totalItems={produtos?.total || 0}
+                        onPageChange={handlePageChange}
+                        onItemsPerPageChange={(value) => setItemsPerPage(value)}
+                        showPerPageSelector={true}
+                        itemsPerPageOptions={[20, 50, 100, 500]}
+                      />
+                    </div>
+                  )}
+                </main>
+              </div>
             </TabsContent>
 
             {/* Stacks Tab */}            <TabsContent value="stacks" className="space-y-8">              <div className="flex justify-between items-center mb-4">                <h2 className="text-2xl font-bold text-foreground">                  Gerenciar Stacks                </h2>                <div className="flex space-x-2">                  <Button                    onClick={() => setShowReorderModal(true)}                    variant="outline"                  >                    Reordenar Stacks                  </Button>                  <Button                    onClick={() => setShowStackModal(true)}                    className="btn-primary"                  >                    <Plus className="h-4 w-4 mr-2" />                    Nova Stack                  </Button>                </div>              </div>              <div className="space-y-6">                {stacksLoading ? (                  <Card>                    <CardContent className="py-8">                      <div className="text-center">Carregando stacks...</div>                    </CardContent>                  </Card>                ) : !stacks?.length || !stacks ? (                  <Card>                    <CardContent className="py-8">                      <div className="text-center">                        Nenhuma stack cadastrada                      </div>                    </CardContent>                  </Card>                ) : (                  stacks.map((stack: any) => (                    <Card key={stack.id}>                      <CardHeader>                        <div className="flex justify-between items-start">                          <div>                            <CardTitle className="text-xl font-semibold">                              {capitalize(stack.titulo)}                            </CardTitle>                            <p className="text-sm text-muted-foreground">                              Ordem: {stack.ordem} • {stack.produtos.length}                              produtos                            </p>                          </div>                          <div className="flex space-x-2">                            <Button                              variant="outline"                              size="sm"                              onClick={() =>                                navigate(`/produtos?stackId=${stack.id}`)                              }                            >                              Ver Produtos                            </Button>                            <Button                              variant="outline"                              size="sm"                              onClick={() =>                                toggleStackStatusMutation.mutate(stack.id)                              }                              className={                                stack.ativo                                  ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"                                  : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"                              }                            >                              {stack.ativo ? "Ativa" : "Inativa"}                            </Button>                            <Button                              variant="ghost"                              size="sm"                              onClick={() => handleEditStack(stack)}                            >                              <Edit className="h-4 w-4" />                            </Button>                            <Button                              variant="ghost"                              size="sm"                              onClick={() =>                                deleteStackMutation.mutate(stack.id)                              }                              className="text-destructive hover:text-destructive"                            >                              <Trash2 className="h-4 w-4" />                            </Button>                          </div>                        </div>                      </CardHeader>                      <CardContent>                        {stack.produtos.length > 0 ? (                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">                            {stack.produtos.map((stackProduto: any) => (                              <div                                key={stackProduto.id}                                className="border border-border rounded-lg p-3 flex items-center space-x-3"                              >                                <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center flex-shrink-0">                                  {stackProduto.produto.fotos && stackProduto.produto.fotos.length > 0 ? (                                    <img                                      src={stackProduto.produto.fotos[0]}                                      alt=""                                      className="w-full h-full rounded object-cover"                                    />                                  ) : (                                    <ImageIcon className="w-4 h-4 text-muted-foreground" />                                  )}                                </div>                                <div className="flex-1 min-w-0">                                  <p className="text-sm font-medium text-foreground truncate">                                    {stackProduto.produto.titulo}                                  </p>                                  <p className="text-xs text-muted-foreground">                                    R$                                    {stackProduto.produto.valorDesconto?.toFixed(                                      2,                                    ) ||                                      stackProduto.produto.valorBruto.toFixed(                                        2,                                      )}                                  </p>                                </div>                              </div>                            ))}                          </div>                        ) : (                          <p className="text-muted-foreground text-sm">                            Nenhum produto adicionado a esta stack                          </p>                        )}                      </CardContent>                    </Card>                  ))                )}              </div>            </TabsContent>

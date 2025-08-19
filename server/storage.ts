@@ -17,7 +17,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
 
 export interface IStorage {
   // Produtos
-  getProdutos(search?: string, page?: number, limit?: number, stackId?: string, categoryId?: string, includeInactive?: boolean): Promise<{ produtos: Produto[], total: number }>;
+  getProdutos(q?: string, page?: number, limit?: number, stackId?: string, categoryIds?: string, includeInactive?: boolean): Promise<{ produtos: Produto[], total: number }>;
   getProdutoById(id: string): Promise<(Produto & { categorias: Categoria[] }) | undefined>;
   createProduto(produto: InsertProduto, categoriaIds?: string[]): Promise<Produto>;
   updateProduto(id: string, produto: Partial<InsertProduto>, categoriaIds?: string[]): Promise<Produto>;
@@ -60,17 +60,17 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getProdutos(search?: string, page: number = 1, limit: number = 20, stackId?: string, categoryId?: string, includeInactive: boolean = false): Promise<{ produtos: (Produto & { categorias: Categoria[] })[], total: number }> {
+  async getProdutos(q?: string, page: number = 1, limit: number = 20, stackId?: string, categoryIds?: string, includeInactive: boolean = false): Promise<{ produtos: (Produto & { categorias: Categoria[] })[], total: number }> {
     const offset = (page - 1) * limit;
 
     const conditions = [];
     if (!includeInactive) {
       conditions.push(eq(produtos.ativo, true));
     }
-    if (search) {
+    if (q) {
       conditions.push(or(
-        ilike(produtos.titulo, `%${search}%`),
-        ilike(produtos.id, `%${search}%`)
+        ilike(produtos.titulo, `%${q}%`),
+        ilike(produtos.id, `%${q}%`)
       ));
     }
 
@@ -87,11 +87,12 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(stackProdutos.stackId, stackId));
     }
 
-    if (categoryId) {
+    if (categoryIds) {
+      const ids = categoryIds.split(',');
       const categoryJoinCondition = eq(produtos.id, categoriaProdutos.produtoId);
       countQuery = countQuery.innerJoin(categoriaProdutos, categoryJoinCondition);
       paginatedIdsQuery = paginatedIdsQuery.innerJoin(categoriaProdutos, categoryJoinCondition);
-      conditions.push(eq(categoriaProdutos.categoriaId, categoryId));
+      conditions.push(inArray(categoriaProdutos.categoriaId, ids));
     }
 
     const finalWhereClause = conditions.length > 0 ? and(...conditions) : undefined;
