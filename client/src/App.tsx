@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { CategoryStrip } from "@/components/CategoryStrip"; // Import the new component
 import { FeaturedStacks } from "@/pages/featured-stacks";
 import { SearchProducts } from "@/pages/search-products";
 import { AdminDashboard } from "@/pages/admin-dashboard";
@@ -37,8 +38,9 @@ function App() {
       <ThemeProvider>
         <TooltipProvider>
           <Router>
-            <div className="min-h-screen bg-background transition-colors duration-300">
+            <div className="min-h-screen bg-background transition-colors duration-300 pt-16">
               <Header />
+              <CategoryStrip /> {/* Render the new component here */}
               <Routes>
                 <Route path="/" element={<FeaturedStacks />} />
                 <Route path="/produtos" element={<SearchProducts />} />

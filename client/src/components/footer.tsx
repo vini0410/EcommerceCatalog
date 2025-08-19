@@ -3,7 +3,7 @@ import React from 'react';
 
 export function Footer() {
   return (
-    <footer className="bg-background text-white p-6 mt-8">
+        <footer className="bg-background text-foreground p-6 mt-8">
       <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
         {/* Store Contact Info (70%) */}
         <div className="w-full md:w-7/10 mb-4 md:mb-0 text-center md:text-left">
