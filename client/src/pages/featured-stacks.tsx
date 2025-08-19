@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { type Produto } from "@shared/schema";
 import { capitalize } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
+import { CategoryStrip } from "@/components/CategoryStrip";
 
 export function FeaturedStacks() {
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null);
@@ -72,18 +73,20 @@ export function FeaturedStacks() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="gradient-bg py-12">
+      <section className="gradient-bg py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+          <div className="text-center mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
               ✨ Produtos em <span className="text-gradient">Destaque</span>
             </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-base text-muted-foreground max-w-2xl mx-auto">
               Descubra nossa seleção especial de produtos organizados em coleções exclusivas
             </p>
           </div>
         </div>
       </section>
+
+      <CategoryStrip />
 
       {/* Stacks Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">

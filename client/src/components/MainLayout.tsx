@@ -35,7 +35,7 @@ export function MainLayout() {
   return (
     <div className="min-h-screen bg-background transition-colors duration-300 pt-16">
       <Header />
-      {!isAdminRoute && <CategoryStrip />}
+      {/* {!isAdminRoute && <CategoryStrip />} */}
       <Routes>
         <Route path="/" element={<FeaturedStacks />} />
         <Route path="/produtos" element={<SearchProducts />} />
