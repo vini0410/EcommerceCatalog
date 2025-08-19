@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,18 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 export function CategoryStrip() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto'; // Clean up on unmount
+    };
+  }, [isOpen]);
 
   const { data: categoriesData, isLoading: isLoadingCategories } = useQuery<Categoria[]>({
     queryKey: ["/api/categorias"],
@@ -33,13 +45,21 @@ export function CategoryStrip() {
     setIsOpen(false); // Close the strip after clicking a category
   };
 
+  const handleWheelScroll = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (scrollRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      scrollRef.current.scrollLeft += event.deltaY;
+    }
+  };
+
   return (
-    <div className="fixed top-[56px] left-0 right-0 z-30 bg-transparent">
+    <div className="fixed top-16 left-0 right-0 z-30 bg-transparent">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-start mt-2"> {/* Negative margin to make it appear from under the header */}
+        <div className="flex justify-start mt-2 relative h-[56px] w-full">
           <Button
             onClick={() => setIsOpen(!isOpen)}
-            className="rounded-full px-6 py-2 text-sm font-medium shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105"
+            className="rounded-full px-6 py-2 text-sm font-medium shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 absolute top-[-10px]"
           >
             Categorias {isOpen ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
           </Button>
@@ -47,15 +67,19 @@ export function CategoryStrip() {
       </div>
 
       {isOpen && (
-        <div className="bg-card border-t border-b border-border shadow-md py-4 mt-2 overflow-x-auto whitespace-nowrap scrollbar-hide">
+        <div
+          ref={scrollRef}
+          onWheel={handleWheelScroll}
+          className="bg-card border-t border-b border-border shadow-md py-4 mt-2 overflow-x-auto whitespace-nowrap scrollbar-hide"
+        >
           {isLoadingCategories ? (
-            <div className="flex justify-center gap-4 px-4">
+            <div className="flex justify-start gap-4 px-6">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="h-8 w-24 bg-muted rounded-full animate-pulse"></div>
               ))}
             </div>
           ) : (
-            <div className="flex justify-center gap-4 px-4">
+            <div className="flex justify-start gap-4 px-6">
               {categoriesData?.map((category) => {
                 const color = category.color || '#818cf8';
                 const textColor = getContrastColor(color);

@@ -637,7 +637,7 @@ export function AdminDashboard() {
   const totalPages = produtos ? Math.ceil(produtos.total / itemsPerPage) : 0;
 
   return (
-    <div className="min-h-screen pt-16">
+    <div className="min-h-screen">
       {/* Header */}
       <section className="gradient-bg py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
