@@ -66,7 +66,8 @@ export function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center">
+            <Link to="/" className="flex items-center gap-2">
+              <img src="/logo.png" alt="Logo" className="h-12 w-12" />
               <div className="btn-primary rounded-full flex items-center justify-center px-2 py-1">
                 {isSmallScreen ? ( // Conditional rendering based on screen size
                   <span className="text-primary-foreground font-bold text-lg">E.C <Sparkles className="inline-block w-4 h-4" /></span>
