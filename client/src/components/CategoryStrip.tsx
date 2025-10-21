@@ -21,23 +21,10 @@ export function CategoryStrip() {
     const scrollElement = scrollRef.current;
     if (!scrollElement) return;
 
-    const handleMouseEnter = () => {
-      document.body.style.overflow = 'hidden';
-    };
-
-    const handleMouseLeave = () => {
-      document.body.style.overflow = 'auto';
-    };
-
-    scrollElement.addEventListener('mouseenter', handleMouseEnter);
-    scrollElement.addEventListener('mouseleave', handleMouseLeave);
     scrollElement.addEventListener('wheel', handleWheelScroll, { passive: false });
 
     return () => {
-      scrollElement.removeEventListener('mouseenter', handleMouseEnter);
-      scrollElement.removeEventListener('mouseleave', handleMouseLeave);
       scrollElement.removeEventListener('wheel', handleWheelScroll);
-      document.body.style.overflow = 'auto'; // make sure to restore scroll on unmount
     };
   }, []);
 
@@ -63,7 +50,7 @@ export function CategoryStrip() {
   };
 
   return (
-    <div className="bg-card shadow-md py-4 overflow-x-auto whitespace-nowrap scrollbar-hide" ref={scrollRef}>
+    <div className="bg-card shadow-md py-4 overflow-x-auto whitespace-nowrap" ref={scrollRef}>
       {isLoadingCategories ? (
         <div className="flex justify-start gap-4 px-6">
           {Array.from({ length: 5 }).map((_, i) => (

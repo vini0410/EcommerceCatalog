@@ -57,6 +57,44 @@ export const checkAuthStatus = async () => {
 };
 
 export const api = {
+  async getMaintenanceModeStatus() {
+    const res = await fetch(`${API_BASE_URL}/api/settings/maintenance`);
+    if (!res.ok) {
+      let errorMessage = `HTTP error! Status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {
+        const errorText = await res.text();
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
+      throw new Error(`Erro ao buscar status do modo de manutenção: ${errorMessage}`);
+    }
+    return res.json();
+  },
+
+  async setMaintenanceModeStatus(mode: boolean) {
+    const res = await fetch(`${API_BASE_URL}/api/admin/settings/maintenance`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ mode }),
+    });
+    if (!res.ok) {
+      let errorMessage = `HTTP error! Status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {
+        const errorText = await res.text();
+        errorMessage = `Server responded with: ${errorText || res.statusText || errorMessage}`;
+      }
+      throw new Error(`Erro ao atualizar modo de manutenção: ${errorMessage}`);
+    }
+    return res.json();
+  },
+
   // This is a dummy comment to force a file change and trigger a rebuild.
 
   // Produtos públicos

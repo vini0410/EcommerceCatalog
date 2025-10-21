@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import { insertProdutoSchema, insertStackSchema, insertStackProdutoSchema, reorderStacksSchema, insertCategoriaSchema } from "../shared/schema.js";
 import passport from "passport";
+import { getMaintenanceMode, setMaintenanceMode } from "./settings.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware para validação de admin
@@ -54,6 +55,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- Rotas Públicas ---
+  app.get("/api/settings/maintenance", async (req, res) => {
+    try {
+      const maintenanceMode = await getMaintenanceMode();
+      res.json({ maintenanceMode });
+    } catch (error: any) {
+      console.error("Erro ao buscar status do modo de manutenção:", error);
+      res.status(500).json({ message: `Erro ao buscar status do modo de manutenção: ${error.message}` });
+    }
+  });
+
   app.get("/api/produtos", async (req, res) => {
     try {
       const { q, page = 1, limit = 20, stackId, categoryIds, includeInactive } = req.query;
@@ -86,6 +97,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- Rotas de Admin ---
+  app.put("/api/admin/settings/maintenance", requireAdmin, async (req, res) => {
+    try {
+      const { mode } = req.body;
+      if (typeof mode !== 'boolean') {
+        return res.status(400).json({ message: "O parâmetro 'mode' deve ser um booleano." });
+      }
+      await setMaintenanceMode(mode);
+      res.json({ message: "Modo de manutenção atualizado com sucesso", maintenanceMode: mode });
+    } catch (error: any) {
+      console.error("Erro ao atualizar modo de manutenção:", error);
+      res.status(500).json({ message: `Erro ao atualizar modo de manutenção: ${error.message}` });
+    }
+  });
+
   app.post("/api/admin/produtos", requireAdmin, async (req, res) => {
     try {
       const { categoriaIds, ...produtoData } = insertProdutoSchema.parse(req.body);
