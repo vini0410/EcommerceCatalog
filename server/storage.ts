@@ -7,13 +7,15 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  throw new Error('Supabase URL and Service Role Key must be defined in your .env file');
-}
+let supabaseAdmin: ReturnType<typeof createClient> | undefined;
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-  auth: { persistSession: false },
-});
+if (supabaseUrl && supabaseServiceRoleKey) {
+  supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: { persistSession: false },
+  });
+} else {
+  console.warn('Supabase URL or Service Role Key not defined. Supabase storage functionality will be disabled.');
+}
 
 export interface IStorage {
   // Produtos
@@ -240,9 +242,11 @@ export class DatabaseStorage implements IStorage {
         return parts.slice(bucketNameIndex + 1).join('/');
       });
 
-      const { error: deleteError } = await supabaseAdmin.storage.from(
-        SUPABASE_BUCKET_PRODUTOS,
-      ).remove(filePaths);
+      if (supabaseAdmin) {
+        const { error: deleteError } = await supabaseAdmin.storage.from(
+          SUPABASE_BUCKET_PRODUTOS,
+        ).remove(filePaths);
+      }
 
       if (deleteError) {
         console.error("Erro ao deletar imagens do Supabase Storage:", deleteError);

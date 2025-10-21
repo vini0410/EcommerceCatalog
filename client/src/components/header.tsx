@@ -62,7 +62,7 @@ export function Header() {
 
   return (
     <>
-      <header className="bg-card/95 backdrop-blur-sm shadow-lg fixed top-0 left-0 right-0 z-40 border-b border-border/50">
+      <header className="bg-card/95 fixed top-0 left-0 right-0 z-40 border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
