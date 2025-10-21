@@ -1,12 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
-
-// Lê as variáveis de ambiente do Vite
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase URL and Anon Key must be defined in your .env file')
-}
+export let supabase: ReturnType<typeof createClient> | undefined;
 
-// Cria e exporta o cliente Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+if (supabaseUrl && supabaseAnonKey) {
+  // Cria e exporta o cliente Supabase
+  supabase = createClient(supabaseUrl, supabaseAnonKey)
+} else {
+  console.warn('VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY not defined. Supabase client will not be initialized.');
+}
