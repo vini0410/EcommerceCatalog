@@ -50,7 +50,7 @@ export function CategoryStrip() {
   };
 
   return (
-    <div className="bg-card shadow-md py-4 overflow-x-auto whitespace-nowrap" ref={scrollRef}>
+    <div className="bg-card shadow-md py-4 overflow-x-auto whitespace-nowrap" ref={scrollRef} data-testid="category-strip-scroll-container">
       {isLoadingCategories ? (
         <div className="flex justify-start gap-4 px-6">
           {Array.from({ length: 5 }).map((_, i) => (

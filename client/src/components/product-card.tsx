@@ -30,7 +30,7 @@ export function ProductCard({ produto, onViewDetails }: ProductCardProps) {
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
-          <ImageIcon className="w-16 h-16 text-muted-foreground" />
+          <ImageIcon className="w-16 h-16 text-muted-foreground" data-testid="image-icon-placeholder" />
         )}
 
         {hasDiscount && (
