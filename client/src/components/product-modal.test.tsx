@@ -1,10 +1,11 @@
 
 import { render, screen, fireEvent } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // Re-add QueryClient and QueryClientProvider
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProductModal } from './product-modal';
 import { type Produto, type Categoria } from '@shared/schema';
 import { LocaleProvider } from '../context/LocaleContext';
 import { vi } from 'vitest';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Mock UI components
 vi.mock('@/components/ui/dialog', () => ({
@@ -32,6 +33,9 @@ vi.mock('lucide-react', async (importOriginal) => {
     MessageCircle: (props: any) => <span data-testid="message-circle" {...props} />,
   };
 });
+
+// Mock the useIsMobile hook
+vi.mock('@/hooks/use-mobile');
 
 const mockOnOpenChange = vi.fn();
 
@@ -72,40 +76,6 @@ const mockProductMinimalDetails: Produto & { categorias?: Categoria[] } = {
   categorias: [],
 };
 
-// Helper function to dynamically import ProductModal after setting global mocks
-async function importProductModalDynamically(isMobile: boolean) {
-  // Save original properties
-  const originalInnerWidth = window.innerWidth;
-  const originalMaxTouchPoints = navigator.maxTouchPoints;
-  const originalOnTouchStart = window.ontouchstart;
-
-  // Set properties based on isMobile flag
-  Object.defineProperty(window, 'innerWidth', { writable: true, value: isMobile ? 700 : 1024 });
-  Object.defineProperty(navigator, 'maxTouchPoints', { writable: true, value: isMobile ? 1 : 0 });
-  Object.defineProperty(window, 'ontouchstart', { writable: true, value: isMobile ? () => {} : undefined });
-
-  // Dynamically import the module
-  const { ProductModal: DynamicProductModal } = await vi.importActual<typeof import('./product-modal')>('./product-modal');
-
-  // Restore original properties
-  Object.defineProperty(window, 'innerWidth', { writable: true, value: originalInnerWidth });
-  Object.defineProperty(navigator, 'maxTouchPoints', { writable: true, value: originalMaxTouchPoints });
-  Object.defineProperty(window, 'ontouchstart', { writable: true, value: originalOnTouchStart });
-
-  return DynamicProductModal;
-}
-
-
-
-
-// Mock global window and navigator properties for specific tests
-// This is done in individual tests to control the evaluation of isMobileOrTablet
-// which is defined at the module level in product-modal.tsx.
-
-vi.stubGlobal('innerWidth', 1024);
-vi.stubGlobal('navigator', { maxTouchPoints: 0 });
-vi.stubGlobal('ontouchstart', undefined);
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -125,7 +95,9 @@ const renderWithProviders = (produto: Produto | null, open: boolean) => {
 };
 
 describe('ProductModal', () => {
-
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('does not render when product is null', () => {
     const { queryByTestId } = renderWithProviders(null, true);
@@ -167,15 +139,10 @@ describe('ProductModal', () => {
     expect(mockOnOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it('generates correct WhatsApp link for non-mobile environment', async () => {
-    const DynamicProductModal = await importProductModalDynamically(false); // Non-mobile
-    render(
-      <QueryClientProvider client={queryClient}>
-        <LocaleProvider>
-          <DynamicProductModal produto={mockProductWithAllDetails} open={true} onOpenChange={mockOnOpenChange} />
-        </LocaleProvider>
-      </QueryClientProvider>
-    );
+  it('generates correct WhatsApp link for non-mobile environment', () => {
+    vi.mocked(useIsMobile).mockReturnValue(false); // Mock non-mobile
+
+    renderWithProviders(mockProductWithAllDetails, true);
 
     const whatsappLink = screen.getByLabelText('Contact via WhatsApp');
     const expectedMessage = encodeURIComponent(`Olá, tenho interesse no produto: *Smartphone X* 
@@ -185,15 +152,10 @@ Codigo do Produto: prod1`);
     expect(whatsappLink).toHaveAttribute('href', expectedUrl);
   });
 
-  it('generates correct WhatsApp link for mobile environment', async () => {
-    const DynamicProductModal = await importProductModalDynamically(true); // Mobile
-    render(
-      <QueryClientProvider client={queryClient}>
-        <LocaleProvider>
-          <DynamicProductModal produto={mockProductWithAllDetails} open={true} onOpenChange={mockOnOpenChange} />
-        </LocaleProvider>
-      </QueryClientProvider>
-    );
+  it('generates correct WhatsApp link for mobile environment', () => {
+    vi.mocked(useIsMobile).mockReturnValue(true); // Mock mobile
+
+    renderWithProviders(mockProductWithAllDetails, true);
 
     const whatsappLink = screen.getByLabelText('Contact via WhatsApp');
     const expectedMessage = encodeURIComponent(`Olá, tenho interesse no produto: *Smartphone X* 

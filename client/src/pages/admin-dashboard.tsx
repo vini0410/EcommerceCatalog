@@ -77,12 +77,24 @@ interface CategoryFormData {
 
 import { Switch } from "@/components/ui/switch";
 import { useMaintenance } from "../context/MaintenanceContext";
+import { useAuth } from "../context/AuthContext";
 
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { maintenanceMode, setMaintenanceMode } = useMaintenance();
+  const { checkAuth, logout } = useAuth();
+
+  useEffect(() => {
+    const verifyAuth = async () => {
+      const authed = await checkAuth();
+      if (!authed) {
+        navigate("/");
+      }
+    };
+    verifyAuth();
+  }, [checkAuth, navigate]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(100);
@@ -183,7 +195,7 @@ export function AdminDashboard() {
 
   // Mutations
   const logoutMutation = useMutation({
-    mutationFn: () => logout(),
+    mutationFn: logout,
     onSuccess: () => {
       toast({ title: "Logout realizado com sucesso!" });
       navigate("/");
@@ -649,7 +661,8 @@ export function AdminDashboard() {
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
               ⚙️ Painel <span className="text-gradient">Administrativo</span>
             </h1>
-            <div className="flex items-center justify-center space-x-2 mb-4">
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            <div className="flex items-center space-x-2">
               <Switch
                 id="maintenance-mode"
                 checked={maintenanceMode}
@@ -657,6 +670,16 @@ export function AdminDashboard() {
               />
               <Label htmlFor="maintenance-mode">Modo de Manutenção</Label>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
+          </div>
             <p className="text-base text-muted-foreground max-w-2xl mx-auto">
               Gerencie produtos e stacks do seu catálogo
             </p>

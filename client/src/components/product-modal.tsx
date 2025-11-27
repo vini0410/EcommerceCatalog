@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImageIcon, MessageCircle, Phone } from "lucide-react";
 import { type Produto, type Categoria } from "@shared/schema";
 import { capitalize, getContrastColor } from "@/lib/utils"; // Import getContrastColor
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProductModalProps {
   produto: (Produto & { categorias?: Categoria[] }) | null;
@@ -13,6 +14,7 @@ interface ProductModalProps {
 
 export function ProductModal({ produto, open, onOpenChange }: ProductModalProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const isMobile = useIsMobile();
 
   if (!produto) return null;
 
@@ -31,13 +33,7 @@ Codigo do Produto: ${produto.id}`;
   const whatsappWebAppUrl = `https://web.whatsapp.com/send?phone=${storePhoneNumber}&text=${encodedMessage}`;
   const whatsappAppUrl = `https://wa.me/${storePhoneNumber}?text=${encodedMessage}`;
 
-  const isMobileOrTablet = () => {
-    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const isSmallScreen = window.innerWidth < 768;
-    return hasTouch || isSmallScreen;
-  };
-
-  const whatsappRedirectUrl = isMobileOrTablet() ? whatsappAppUrl : whatsappWebAppUrl;
+  const whatsappRedirectUrl = isMobile ? whatsappAppUrl : whatsappWebAppUrl;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
