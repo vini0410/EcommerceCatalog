@@ -246,10 +246,10 @@ export class DatabaseStorage implements IStorage {
         const { error: deleteError } = await supabaseAdmin.storage.from(
           SUPABASE_BUCKET_PRODUTOS,
         ).remove(filePaths);
-      }
 
-      if (deleteError) {
-        console.error("Erro ao deletar imagens do Supabase Storage:", deleteError);
+        if (deleteError) {
+          console.error("Erro ao deletar imagens do Supabase Storage:", deleteError);
+        }
       }
     }
 
